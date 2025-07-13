@@ -32,8 +32,13 @@ const (
 `
 )
 
+// ChatCompleter abstracts the OpenAI client method used by chatCompletion.
+type ChatCompleter interface {
+	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
 // chatCompletion sends a prompt to OpenAI and returns the reply text.
-func chatCompletion(client *openai.Client, prompt string) (string, error) {
+func chatCompletion(client ChatCompleter, prompt string) (string, error) {
 	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 		Model:       "gpt-4o",
 		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
@@ -47,6 +52,31 @@ func chatCompletion(client *openai.Client, prompt string) (string, error) {
 		return "", nil
 	}
 	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
+}
+
+// setupScheduler configures daily jobs on the provided scheduler.
+func setupScheduler(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
+	s.Every(1).Day().At("13:00").Do(func() {
+		text, err := chatCompletion(client, lunchIdeaPrompt)
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return
+		}
+		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
+			log.Printf("telegram send error: %v", err)
+		}
+	})
+
+	s.Every(1).Day().At("20:00").Do(func() {
+		text, err := chatCompletion(client, dailyBriefPrompt)
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return
+		}
+		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
+			log.Printf("telegram send error: %v", err)
+		}
+	})
 }
 
 func main() {
@@ -75,28 +105,7 @@ func main() {
 	}
 
 	scheduler := gocron.NewScheduler(moscowTZ)
-
-	scheduler.Every(1).Day().At("13:00").Do(func() {
-		text, err := chatCompletion(client, lunchIdeaPrompt)
-		if err != nil {
-			log.Printf("openai error: %v", err)
-			return
-		}
-		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
-			log.Printf("telegram send error: %v", err)
-		}
-	})
-
-	scheduler.Every(1).Day().At("20:00").Do(func() {
-		text, err := chatCompletion(client, dailyBriefPrompt)
-		if err != nil {
-			log.Printf("openai error: %v", err)
-			return
-		}
-		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
-			log.Printf("telegram send error: %v", err)
-		}
-	})
+	setupScheduler(scheduler, client, bot, chatID)
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartBlocking()
