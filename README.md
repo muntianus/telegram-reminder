@@ -64,6 +64,28 @@ cp .env.example .env
 docker-compose up -d
 ```
 
+## GitHub Actions Deployment
+
+This repository includes a GitHub Actions workflow that automatically builds and
+deploys the Docker image on every push to the `main` branch. The workflow
+performs the following steps:
+
+1. Check out the repository and compile the Go binary.
+2. Build and push the Docker image to Docker Hub.
+3. Connect to the VPS via SSH and restart the container using
+   `docker-compose`.
+
+Make sure to configure all required secrets for the workflow in your repository
+settings:
+
+* `DOCKERHUB_USER` and `DOCKERHUB_TOKEN` for publishing the image.
+* `VPS_SSH_KEY`, `VPS_USER` and `VPS_HOST` for connecting to the server.
+* `TELEGRAM_TOKEN`, `OPENAI_API_KEY` and `CHAT_ID` to populate the `.env` file
+  during deployment.
+
+After the deployment job finishes, log into the VPS and run `docker ps` to
+verify that the container is up and running.
+
 
 
 ## License
