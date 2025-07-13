@@ -35,6 +35,23 @@ func main() {
 
 	client := openai.NewClient(openaiKey)
 
+	bot.Handle("/start", func(c tb.Context) error {
+		msg := "Hello! Send me any message and I'll ask ChatGPT to reply.\n" +
+			"Use /task <instruction> to forward a specific command."
+		return c.Send(msg)
+	})
+
+	bot.Handle("/help", func(c tb.Context) error {
+		return c.Send("Available commands:\n" +
+			"/start - show welcome message\n" +
+			"/task <text> - send instruction to ChatGPT\n" +
+			"/ping - check bot responsiveness")
+	})
+
+	bot.Handle("/ping", func(c tb.Context) error {
+		return c.Send("pong")
+	})
+
 	bot.Handle("/task", func(c tb.Context) error {
 		prompt := c.Message().Payload
 		if prompt == "" {

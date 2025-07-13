@@ -35,3 +35,11 @@ To forward a specific instruction to ChatGPT, use the `/task` command followed b
 
 The bot will send the request to ChatGPT and reply with the result in the chat.
 
+Other useful commands:
+
+```
+/start - show a welcome message
+/help  - list available commands
+/ping  - check if the bot is responsive
+```
+
