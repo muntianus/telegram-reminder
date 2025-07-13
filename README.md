@@ -27,6 +27,7 @@ go run main.go
 ```
 
 Once started, the scheduler will automatically send the two daily messages at the specified times.
+Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
 
 ## Deploying on a server
 
@@ -49,6 +50,13 @@ Run the container:
 
 ```sh
 docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KEY=your_api_key telegram-bot
+```
+
+You can also run the bot using `docker-compose`. Copy `.env.example` to `.env`, fill in the required values, then start the service:
+
+```sh
+cp .env.example .env
+docker-compose up -d
 ```
 
 

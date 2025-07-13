@@ -42,6 +42,7 @@ type ChatCompleter interface {
 
 // chatCompletion sends a prompt to OpenAI and returns the reply text.
 func chatCompletion(ctx context.Context, client ChatCompleter, prompt string) (string, error) {
+
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:       "gpt-4o",
 		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
@@ -123,6 +124,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler(moscowTZ)
 	setupScheduler(scheduler, client, bot, chatID)
+
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartBlocking()
