@@ -57,10 +57,10 @@ jobs:
             cd /opt/telegram-reminder/telegram-reminder
             # Обновляем .env
             cat > .env << ENV
-TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
-OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-CHAT_ID=${{ secrets.CHAT_ID }}
-ENV
+            TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            CHAT_ID=${{ secrets.CHAT_ID }}
+            ENV
 
             # Подтягиваем образ и перезапускаем
             docker pull ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
