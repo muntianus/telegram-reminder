@@ -65,18 +65,18 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOF'
             cd /opt/telegram-reminder/telegram-reminder
             # Обновляем .env
-            cat > .env <<'ENV'
-            TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            CHAT_ID=${{ secrets.CHAT_ID }}
-            DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}
-            ENV
+cat > .env <<'ENV'
+TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+CHAT_ID=${{ secrets.CHAT_ID }}
+DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}
+ENV
 
             # Подтягиваем образ и перезапускаем
             docker pull ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
             docker-compose down
             docker-compose up -d
-          EOF
+EOF
