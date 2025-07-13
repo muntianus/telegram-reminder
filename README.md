@@ -48,7 +48,7 @@ docker build -t telegram-bot .
 Run the container:
 
 ```sh
-docker run -e TELEGRAM_TOKEN=your_token -e OPENAI_API_KEY=your_api_key telegram-bot
+docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KEY=your_api_key telegram-bot
 ```
 
 
