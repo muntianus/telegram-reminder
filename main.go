@@ -35,12 +35,35 @@ func main() {
 
 	client := openai.NewClient(openaiKey)
 
+	bot.Handle("/task", func(c tb.Context) error {
+		prompt := c.Message().Payload
+		if prompt == "" {
+			return c.Send("usage: /task <your instruction>")
+		}
+
+		resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+			Model: openai.GPT3Dot5Turbo,
+			Messages: []openai.ChatCompletionMessage{{
+				Role:    "user",
+				Content: prompt,
+			}},
+		})
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return c.Send("failed to get response from ChatGPT")
+		}
+
+		if len(resp.Choices) > 0 {
+			return c.Send(resp.Choices[0].Message.Content)
+		}
+		return nil
+	})
+
 	bot.Handle(tb.OnText, func(c tb.Context) error {
 		prompt := c.Text()
 		if prompt == "" {
 			return nil
 		}
-
 		resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 			Model: openai.GPT3Dot5Turbo,
 			Messages: []openai.ChatCompletionMessage{{

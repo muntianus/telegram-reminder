@@ -27,3 +27,11 @@ The bot logs a message like `✅ Bot up as @mybot (ID: 123)` when it starts so y
 
 Send any message to the bot in Telegram and it will reply using ChatGPT.
 
+To forward a specific instruction to ChatGPT, use the `/task` command followed by your text:
+
+```text
+/task Rewrite my homework in bullet points
+```
+
+The bot will send the request to ChatGPT and reply with the result in the chat.
+
