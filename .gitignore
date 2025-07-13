@@ -1,1 +1,26 @@
-telegram-reminder
+.env
+
+# Go build artifacts
+/bin/
+/build/
+/dist/
+
+# Compiled binary outputs
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Logs
+*.log
+
+# Vendor and dependencies
+/vendor/
+
+# Docker
+.dockerignore
+Dockerfile*
+
+# Tools
+bot

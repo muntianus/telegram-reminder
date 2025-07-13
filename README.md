@@ -14,7 +14,7 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 
 ## Requirements
 
-* Go 1.20+
+* Go 1.24+
 * Telegram bot token (`TELEGRAM_TOKEN`)
 * Destination chat ID (`CHAT_ID`)
 * OpenAI API key (`OPENAI_API_KEY`)
@@ -32,6 +32,7 @@ go run main.go
 ```
 
 Once started, the scheduler will automatically send the two daily messages at the specified times.
+Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
 
 ## Deploying on a server
 
@@ -53,7 +54,18 @@ docker build -t telegram-bot .
 Run the container:
 
 ```sh
-docker run -e TELEGRAM_TOKEN=your_token -e OPENAI_API_KEY=your_api_key telegram-bot
+docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KEY=your_api_key telegram-bot
+```
+
+You can also run the bot using `docker-compose`. Copy `.env.example` to `.env`, fill in the required values, then start the service. The `DOCKERHUB_USER` variable in `.env` defines the Docker Hub account used in `docker-compose.yml`:
+
+```sh
+cp .env.example .env
+docker-compose up -d
 ```
 
 
+
+## License
+
+Released under the [MIT License](LICENSE).

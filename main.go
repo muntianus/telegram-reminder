@@ -34,6 +34,7 @@ const (
 `
 )
 
+
 var (
 	currentModel = "gpt-4o"
 	modelMu      sync.RWMutex
@@ -100,7 +101,7 @@ func main() {
 	}
 
 	scheduler := gocron.NewScheduler(moscowTZ)
-
+	setupScheduler(scheduler, client, bot, chatID)
 	scheduler.Every(1).Day().At("13:00").Do(func() {
 		text, err := systemCompletion(client, lunchIdeaPrompt)
 		if err != nil {
