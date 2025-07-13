@@ -33,6 +33,7 @@ go run main.go
 
 Once started, the scheduler will automatically send the two daily messages at the specified times.
 Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
+Before submitting a pull request, run `gofmt -w` to ensure all Go files are properly formatted.
 
 ## Deploying on a server
 
