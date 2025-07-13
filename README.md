@@ -23,7 +23,26 @@ export OPENAI_API_KEY=your_openai_key
 go run main.go
 ```
 
+The bot logs a message like `✅ Bot up as @mybot (ID: 123)` when it starts so you know it is running. Verbose logging of API requests is enabled by default.
+
 Send any message to the bot in Telegram and it will reply using ChatGPT.
+
+To forward a specific instruction to ChatGPT, use the `/task` command followed by your text:
+
+```text
+/task Rewrite my homework in bullet points
+```
+
+The bot will send the request to ChatGPT and reply with the result in the chat.
+
+Other useful commands:
+
+```
+/start - show a welcome message
+/help  - list available commands
+/ping  - check if the bot is responsive
+```
+
 
 ## Running on a VPS
 
