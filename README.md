@@ -18,6 +18,7 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 * Telegram bot token (`TELEGRAM_TOKEN`)
 * Destination chat ID (`CHAT_ID`)
 * OpenAI API key (`OPENAI_API_KEY`)
+* OpenAI model name (`OPENAI_MODEL`, optional, defaults to `gpt-4o`)
 
 ## Running locally
 
@@ -81,8 +82,8 @@ settings:
 
 * `DOCKERHUB_USER` and `DOCKERHUB_TOKEN` for publishing the image.
 * `VPS_SSH_KEY`, `VPS_USER` and `VPS_HOST` for connecting to the server.
-* `TELEGRAM_TOKEN`, `OPENAI_API_KEY` and `CHAT_ID` to populate the `.env` file
-  during deployment.
+* `TELEGRAM_TOKEN`, `OPENAI_API_KEY`, `CHAT_ID` and optionally `OPENAI_MODEL` to
+  populate the `.env` file during deployment.
 
 After the deployment job finishes, log into the VPS and run `docker ps` to
 verify that the container is up and running.
