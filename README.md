@@ -88,7 +88,24 @@ settings:
 After the deployment job finishes, log into the VPS and run `docker ps` to
 verify that the container is up and running.
 
+## Troubleshooting
 
+The Docker container will exit immediately if the required environment variables are not set:
+
+* `TELEGRAM_TOKEN`
+* `CHAT_ID` (numeric ID)
+* `OPENAI_API_KEY`
+
+Ensure these values are provided either in your environment or in a `.env` file. A valid `.env` might look like:
+
+```ini
+TELEGRAM_TOKEN=123456:ABC-DEF
+CHAT_ID=123456789
+OPENAI_API_KEY=sk-xxxxxxxx
+OPENAI_MODEL=gpt-4o
+```
+
+If the container fails to start, inspect the logs with `docker logs <container>` to see the error messages.
 
 ## License
 
