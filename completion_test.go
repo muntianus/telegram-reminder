@@ -1,43 +1,56 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type mockAI struct {
-	received openai.ChatCompletionRequest
-	resp     openai.ChatCompletionResponse
-	err      error
-}
-
-func (m *mockAI) CreateChatCompletion(_ context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-	m.received = req
-	return m.resp, m.err
+// helper to create client backed by test server
+func newTestClient(handler http.HandlerFunc) (*openai.Client, *httptest.Server) {
+	srv := httptest.NewServer(handler)
+	cfg := openai.DefaultConfig("test")
+	cfg.BaseURL = srv.URL + "/"
+	cfg.HTTPClient = srv.Client()
+	return openai.NewClientWithConfig(cfg), srv
 }
 
 func TestChatCompletionSuccess(t *testing.T) {
-	m := &mockAI{resp: openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
-		{Message: openai.ChatCompletionMessage{Content: "  hi "}},
-	}}}
-	got, err := chatCompletion(context.Background(), m, "prompt")
+	var received openai.ChatCompletionRequest
+	client, srv := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		json.NewEncoder(w).Encode(openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
+			{Message: openai.ChatCompletionMessage{Content: "  hi "}},
+		}})
+	})
+	defer srv.Close()
+
+	msg := openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: "prompt"}
+	got, err := chatCompletion(client, []openai.ChatCompletionMessage{msg})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got != "hi" {
 		t.Errorf("got %q", got)
 	}
-	if m.received.Messages[0].Content != "prompt" {
+	if len(received.Messages) == 0 || received.Messages[0].Content != "prompt" {
 		t.Errorf("prompt not forwarded")
 	}
 }
 
 func TestChatCompletionNoChoices(t *testing.T) {
-	m := &mockAI{}
-	got, err := chatCompletion(context.Background(), m, "test")
+	client, srv := newTestClient(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(openai.ChatCompletionResponse{})
+	})
+	defer srv.Close()
+
+	got, err := chatCompletion(client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,9 +60,20 @@ func TestChatCompletionNoChoices(t *testing.T) {
 }
 
 func TestChatCompletionError(t *testing.T) {
-	m := &mockAI{err: errors.New("boom")}
-	_, err := chatCompletion(context.Background(), m, "test")
+	cfg := openai.DefaultConfig("test")
+	cfg.HTTPClient = &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("boom")
+	})}
+	client := openai.NewClientWithConfig(cfg)
+
+	_, err := chatCompletion(client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err == nil {
 		t.Fatal("expected error")
 	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }

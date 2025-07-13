@@ -7,6 +7,11 @@ This project is a tiny Telegram bot written in Go. It sends two messages every d
 
 The bot can be deployed on any always‑online environment such as Railway, Fly.io or a VPS.
 
+## Commands
+
+- `/chat <message>` – ask the bot any question and get a reply from OpenAI.
+- `/model [name]` – show or change the model used for generation (default `gpt-4o`).
+
 ## Requirements
 
 * Go 1.24+
