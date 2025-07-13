@@ -33,6 +33,7 @@ go run main.go
 ```
 
 Once started, the scheduler will automatically send the two daily messages at the specified times.
+On startup the bot also posts "джарвис в сети, обновление произошло успешно" to confirm a successful deployment.
 Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
 Before submitting a pull request, run `gofmt -w` to ensure all Go files are properly formatted.
 

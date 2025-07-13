@@ -36,10 +36,16 @@ const (
 )
 
 const openAITimeout = 40 * time.Second
+const startupMessage = "джарвис в сети, обновление произошло успешно"
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
 type ChatCompleter interface {
 	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
+// MessageSender is implemented by types that can send Telegram messages.
+type MessageSender interface {
+	Send(recipient tb.Recipient, what interface{}, opts ...interface{}) (*tb.Message, error)
 }
 
 var (
@@ -108,6 +114,13 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 	})
 }
 
+// sendStartupMessage notifies the chat that the bot is running.
+func sendStartupMessage(bot MessageSender, chatID int64) {
+	if _, err := bot.Send(tb.ChatID(chatID), startupMessage); err != nil {
+		log.Printf("telegram send error: %v", err)
+	}
+}
+
 func main() {
 	telegramToken := os.Getenv("TELEGRAM_TOKEN")
 	chatIDStr := os.Getenv("CHAT_ID")
@@ -144,6 +157,8 @@ func main() {
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartAsync()
+
+	sendStartupMessage(bot, chatID)
 
 	bot.Handle("/model", func(c tb.Context) error {
 		payload := strings.TrimSpace(c.Message().Payload)
