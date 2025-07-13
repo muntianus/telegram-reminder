@@ -125,7 +125,6 @@ func main() {
 	scheduler := gocron.NewScheduler(moscowTZ)
 	setupScheduler(scheduler, client, bot, chatID)
 
-
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartBlocking()
 }
