@@ -23,7 +23,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	m := &mockAI{resp: openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
 		{Message: openai.ChatCompletionMessage{Content: "  hi "}},
 	}}}
-	got, err := chatCompletion(m, "prompt")
+	got, err := chatCompletion(context.Background(), m, "prompt")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 
 func TestChatCompletionNoChoices(t *testing.T) {
 	m := &mockAI{}
-	got, err := chatCompletion(m, "test")
+	got, err := chatCompletion(context.Background(), m, "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 
 func TestChatCompletionError(t *testing.T) {
 	m := &mockAI{err: errors.New("boom")}
-	_, err := chatCompletion(m, "test")
+	_, err := chatCompletion(context.Background(), m, "test")
 	if err == nil {
 		t.Fatal("expected error")
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -32,14 +33,16 @@ const (
 `
 )
 
+const openAITimeout = 40 * time.Second
+
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
 type ChatCompleter interface {
 	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
 // chatCompletion sends a prompt to OpenAI and returns the reply text.
-func chatCompletion(client ChatCompleter, prompt string) (string, error) {
-	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+func chatCompletion(ctx context.Context, client ChatCompleter, prompt string) (string, error) {
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:       "gpt-4o",
 		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
 		Temperature: 0.9,
@@ -57,8 +60,15 @@ func chatCompletion(client ChatCompleter, prompt string) (string, error) {
 // setupScheduler configures daily jobs on the provided scheduler.
 func setupScheduler(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
 	s.Every(1).Day().At("13:00").Do(func() {
-		text, err := chatCompletion(client, lunchIdeaPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := chatCompletion(ctx, client, lunchIdeaPrompt)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				log.Printf("openai request timed out")
+				return
+			}
 			log.Printf("openai error: %v", err)
 			return
 		}
@@ -68,8 +78,15 @@ func setupScheduler(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chat
 	})
 
 	s.Every(1).Day().At("20:00").Do(func() {
-		text, err := chatCompletion(client, dailyBriefPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := chatCompletion(ctx, client, dailyBriefPrompt)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				log.Printf("openai request timed out")
+				return
+			}
 			log.Printf("openai error: %v", err)
 			return
 		}
