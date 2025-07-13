@@ -9,11 +9,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
+
       - run: go vet ./...
+
+      - name: Auto format with gofmt
+        run: |
+          gofmt -w -s $(git ls-files '*.go')
+
+      - name: Commit formatting changes (if any)
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "style: auto-format via gofmt"
+            git push
+          fi
+
       - run: go build ./...
       - run: go test ./...
