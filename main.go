@@ -37,18 +37,23 @@ const (
 
 const openAITimeout = 40 * time.Second
 
+// ChatCompleter abstracts the OpenAI client method used by chatCompletion.
+type ChatCompleter interface {
+	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
 var (
 	currentModel = "gpt-4o"
 	modelMu      sync.RWMutex
 )
 
 // chatCompletion sends messages to OpenAI and returns the reply text using the current model.
-func chatCompletion(client *openai.Client, msgs []openai.ChatCompletionMessage) (string, error) {
+func chatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage) (string, error) {
 	modelMu.RLock()
 	m := currentModel
 	modelMu.RUnlock()
 
-	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:       m,
 		Messages:    msgs,
 		Temperature: 0.9,
@@ -63,19 +68,22 @@ func chatCompletion(client *openai.Client, msgs []openai.ChatCompletionMessage) 
 	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
 }
 
-func systemCompletion(client *openai.Client, prompt string) (string, error) {
+func systemCompletion(ctx context.Context, client ChatCompleter, prompt string) (string, error) {
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}}
-	return chatCompletion(client, msgs)
+	return chatCompletion(ctx, client, msgs)
 }
 
-func userCompletion(client *openai.Client, message string) (string, error) {
+func userCompletion(ctx context.Context, client ChatCompleter, message string) (string, error) {
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: message}}
-	return chatCompletion(client, msgs)
+	return chatCompletion(ctx, client, msgs)
 }
 
-func scheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, bot *tb.Bot, chatID int64) {
+func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
 	s.Every(1).Day().At("13:00").Do(func() {
-		text, err := systemCompletion(client, lunchIdeaPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := systemCompletion(ctx, client, lunchIdeaPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
 			return
@@ -86,7 +94,10 @@ func scheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, bot *tb.B
 	})
 
 	s.Every(1).Day().At("20:00").Do(func() {
-		text, err := systemCompletion(client, dailyBriefPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := systemCompletion(ctx, client, dailyBriefPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
 			return
@@ -153,7 +164,10 @@ func main() {
 		if q == "" {
 			return c.Send("Usage: /chat <message>")
 		}
-		text, err := userCompletion(client, q)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := userCompletion(ctx, client, q)
 		if err != nil {
 			log.Printf("openai error: %v", err)
 			return c.Send("OpenAI error")
