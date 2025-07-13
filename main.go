@@ -4,104 +4,100 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
-
+	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
 )
 
+// Prompt templates
+const (
+	dailyBriefPrompt = `
+Ты говоришь кратко, дерзко, панибратски.
+Заполни блоки:
+⚡ Микродействие (одно простое действие на сегодня)
+🧠 Тема дня (мини‑инсайт/мысль)
+💰 Что залутать (актив/идея)
+🏞️ Земля на присмотр (лоты в южном Подмосковье: Бутово, Щербинка, Подольск, Воскресенск), дай 1‑2 лота со ссылками.
+🪙 Альт дня (актуальная монета, линк CoinGecko)
+🚀 Пушка с ProductHunt (ссылка)
+Форматируй одним сообщением, без лишней воды.
+`
+
+	lunchIdeaPrompt = `
+Подавай одну бизнес‑идею + примерный план из 4‑5 пунктов (коротко) + ссылки на релевантные ресурсы/репо/доки. Стиль панибратский, минимум воды.
+`
+)
+
+// chatCompletion sends a prompt to OpenAI and returns the reply text.
+func chatCompletion(client *openai.Client, prompt string) (string, error) {
+	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+		Model:       "gpt-4o",
+		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
+		Temperature: 0.9,
+		MaxTokens:   600,
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Choices) == 0 {
+		return "", nil
+	}
+	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
+}
+
 func main() {
 	telegramToken := os.Getenv("TELEGRAM_TOKEN")
-	if telegramToken == "" {
-		log.Fatal("TELEGRAM_TOKEN env var is required")
-	}
+	chatIDStr := os.Getenv("CHAT_ID")
 	openaiKey := os.Getenv("OPENAI_API_KEY")
-	if openaiKey == "" {
-		log.Fatal("OPENAI_API_KEY env var is required")
+	if telegramToken == "" || chatIDStr == "" || openaiKey == "" {
+		log.Fatal("Set TELEGRAM_TOKEN, CHAT_ID, OPENAI_API_KEY env vars")
 	}
 
-
-	pref := tb.Settings{
-		Token:   telegramToken,
-		Poller:  &tb.LongPoller{Timeout: 10 * time.Second},
-		Verbose: true,
+	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	if err != nil {
+		log.Fatalf("invalid CHAT_ID: %v", err)
 	}
 
-	bot, err := tb.NewBot(pref)
-
+	bot, err := tb.NewBot(tb.Settings{Token: telegramToken})
 	if err != nil {
 		log.Fatalf("failed to create bot: %v", err)
 	}
 
-	log.Printf("\u2705 Bot up as @%s (ID: %d), listening...", bot.Me.Username, bot.Me.ID)
-
 	client := openai.NewClient(openaiKey)
 
-	bot.Handle("/start", func(c tb.Context) error {
-		msg := "Hello! Send me any message and I'll ask ChatGPT to reply.\n" +
-			"Use /task <instruction> to forward a specific command."
-		return c.Send(msg)
-	})
+	moscowTZ, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		log.Fatalf("failed to load timezone: %v", err)
+	}
 
-	bot.Handle("/help", func(c tb.Context) error {
-		return c.Send("Available commands:\n" +
-			"/start - show welcome message\n" +
-			"/task <text> - send instruction to ChatGPT\n" +
-			"/ping - check bot responsiveness")
-	})
+	scheduler := gocron.NewScheduler(moscowTZ)
 
-	bot.Handle("/ping", func(c tb.Context) error {
-		return c.Send("pong")
-	})
-
-	bot.Handle("/task", func(c tb.Context) error {
-		prompt := c.Message().Payload
-		if prompt == "" {
-			return c.Send("usage: /task <your instruction>")
-		}
-
-		resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{{
-				Role:    "user",
-				Content: prompt,
-			}},
-		})
+	scheduler.Every(1).Day().At("13:00").Do(func() {
+		text, err := chatCompletion(client, lunchIdeaPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
-			return c.Send("failed to get response from ChatGPT")
+			return
 		}
-
-		if len(resp.Choices) > 0 {
-			return c.Send(resp.Choices[0].Message.Content)
+		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
+			log.Printf("telegram send error: %v", err)
 		}
-		return nil
 	})
 
-	bot.Handle(tb.OnText, func(c tb.Context) error {
-		prompt := c.Text()
-		if prompt == "" {
-			return nil
-		}
-
-		resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{{
-				Role:    "user",
-				Content: prompt,
-			}},
-		})
+	scheduler.Every(1).Day().At("20:00").Do(func() {
+		text, err := chatCompletion(client, dailyBriefPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
-			return c.Send("failed to get response from ChatGPT")
+			return
 		}
-
-		if len(resp.Choices) > 0 {
-			return c.Send(resp.Choices[0].Message.Content)
+		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
+			log.Printf("telegram send error: %v", err)
 		}
-		return nil
 	})
 
-	bot.Start()
+	log.Println("Scheduler started. Sending briefs…")
+	scheduler.StartBlocking()
 }
