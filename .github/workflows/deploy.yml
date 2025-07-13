@@ -15,10 +15,9 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
-      - name: Clear existing Go cache
+      - name: Clean Go cache
         run: |
-          rm -rf ~/.cache/go-build
-          rm -rf ~/go/pkg/mod
+          go clean -cache -modcache -testcache
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
