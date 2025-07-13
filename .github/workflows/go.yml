@@ -22,6 +22,9 @@ jobs:
 
       - run: go vet ./...
 
+      - name: Run golangci-lint
+        run: golangci-lint run
+
       - name: Auto format with gofmt
         run: |
           gofmt -w -s $(git ls-files '*.go')
