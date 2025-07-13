@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
 )
@@ -20,6 +21,7 @@ func main() {
 		log.Fatal("OPENAI_API_KEY env var is required")
 	}
 
+
 	pref := tb.Settings{
 		Token:   telegramToken,
 		Poller:  &tb.LongPoller{Timeout: 10 * time.Second},
@@ -27,6 +29,7 @@ func main() {
 	}
 
 	bot, err := tb.NewBot(pref)
+
 	if err != nil {
 		log.Fatalf("failed to create bot: %v", err)
 	}
@@ -81,6 +84,7 @@ func main() {
 		if prompt == "" {
 			return nil
 		}
+
 		resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 			Model: openai.GPT3Dot5Turbo,
 			Messages: []openai.ChatCompletionMessage{{
