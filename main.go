@@ -74,7 +74,7 @@ func userCompletion(client *openai.Client, message string) (string, error) {
 }
 
 func scheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, bot *tb.Bot, chatID int64) {
-	s.Every(1).Day().At("13:00").Do(func() {
+	if _, err := s.Every(1).Day().At("13:00").Do(func() {
 		text, err := systemCompletion(client, lunchIdeaPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
@@ -83,9 +83,11 @@ func scheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, bot *tb.B
 		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
 			log.Printf("telegram send error: %v", err)
 		}
-	})
+	}); err != nil {
+		log.Printf("schedule lunch job: %v", err)
+	}
 
-	s.Every(1).Day().At("20:00").Do(func() {
+	if _, err := s.Every(1).Day().At("20:00").Do(func() {
 		text, err := systemCompletion(client, dailyBriefPrompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
@@ -94,7 +96,9 @@ func scheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, bot *tb.B
 		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
 			log.Printf("telegram send error: %v", err)
 		}
-	})
+	}); err != nil {
+		log.Printf("schedule brief job: %v", err)
+	}
 }
 
 func main() {
