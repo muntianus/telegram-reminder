@@ -1,23 +1,42 @@
 name: Build & Deploy
 
-
 on:
   push:
     branches: [main]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
+      # 1) Устанавливаем Go и кешируем модули
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # 2) Подготавливаем и собираем бинарь
+      - name: Download dependencies
+        run: go mod download
+      - name: Build binary
+        run: go build -ldflags="-s -w" -o bot .
+
+      # 3) Логинимся и пушим Docker-образ
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build & Push image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest .
@@ -34,7 +53,7 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOS'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             cd /opt/telegram-reminder/telegram-reminder
             # Обновляем .env
             cat > .env << ENV
@@ -46,4 +65,4 @@ ENV
             docker pull ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
             docker-compose down
             docker-compose up -d
-          EOS
+          EOF
