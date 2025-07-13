@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -40,6 +41,7 @@ type ChatCompleter interface {
 // chatCompletion sends a prompt to OpenAI and returns the reply text.
 func chatCompletion(client ChatCompleter, prompt string) (string, error) {
 	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+
 		Model:       "gpt-4o",
 		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
 		Temperature: 0.9,

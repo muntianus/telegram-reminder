@@ -60,6 +60,7 @@ jobs:
             TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             CHAT_ID=${{ secrets.CHAT_ID }}
+            DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}
             ENV
 
             # Подтягиваем образ и перезапускаем
