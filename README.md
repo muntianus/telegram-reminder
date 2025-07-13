@@ -47,10 +47,18 @@ Before submitting a pull request, run `gofmt -w` to ensure all Go files are prop
 
 ## Docker
 
-Build the image:
+Build the image for the current platform:
 
 ```sh
 docker build -t telegram-bot .
+```
+
+To build and push a multi-platform image (linux/amd64 and linux/arm64) using
+`buildx`:
+
+```sh
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t your_dockerhub_user/telegram-bot:latest --push .
 ```
 
 Run the container:
@@ -69,11 +77,13 @@ docker-compose up -d
 ## GitHub Actions Deployment
 
 This repository includes a GitHub Actions workflow that automatically builds and
-deploys the Docker image on every push to the `main` branch. The workflow
-performs the following steps:
+deploys the Docker image on every push to the `main` branch. It uses Docker
+Buildx to create a multi-architecture image. The workflow performs the following
+steps:
 
 1. Check out the repository and compile the Go binary.
-2. Build and push the Docker image to Docker Hub.
+2. Use Docker Buildx to create and push a multi-platform image
+   (linux/amd64 and linux/arm64) to Docker Hub.
 3. Connect to the VPS via SSH and restart the container using
    `docker-compose`.
 
