@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -32,9 +33,11 @@ const (
 `
 )
 
+const openAITimeout = 40 * time.Second
+
 // chatCompletion sends a prompt to OpenAI and returns the reply text.
-func chatCompletion(client *openai.Client, prompt string) (string, error) {
-	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+func chatCompletion(ctx context.Context, client *openai.Client, prompt string) (string, error) {
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:       "gpt-4o",
 		Messages:    []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}},
 		Temperature: 0.9,
@@ -77,8 +80,15 @@ func main() {
 	scheduler := gocron.NewScheduler(moscowTZ)
 
 	scheduler.Every(1).Day().At("13:00").Do(func() {
-		text, err := chatCompletion(client, lunchIdeaPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := chatCompletion(ctx, client, lunchIdeaPrompt)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				log.Printf("openai request timed out")
+				return
+			}
 			log.Printf("openai error: %v", err)
 			return
 		}
@@ -88,8 +98,15 @@ func main() {
 	})
 
 	scheduler.Every(1).Day().At("20:00").Do(func() {
-		text, err := chatCompletion(client, dailyBriefPrompt)
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := chatCompletion(ctx, client, dailyBriefPrompt)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				log.Printf("openai request timed out")
+				return
+			}
 			log.Printf("openai error: %v", err)
 			return
 		}
