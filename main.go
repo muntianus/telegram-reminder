@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -33,6 +34,8 @@ const (
 Подавай одну бизнес‑идею + примерный план из 4‑5 пунктов (коротко) + ссылки на релевантные ресурсы/репо/доки. Стиль панибратский, минимум воды.
 `
 )
+
+const openAITimeout = 40 * time.Second
 
 var (
 	currentModel = "gpt-4o"
@@ -116,7 +119,9 @@ func main() {
 		log.Fatalf("failed to create bot: %v", err)
 	}
 
-	client := openai.NewClient(openaiKey)
+	cfg := openai.DefaultConfig(openaiKey)
+	cfg.HTTPClient = &http.Client{Timeout: openAITimeout}
+	client := openai.NewClientWithConfig(cfg)
 
 	moscowTZ, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {

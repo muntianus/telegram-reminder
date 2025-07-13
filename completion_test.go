@@ -15,7 +15,9 @@ func newTestClient(handler http.HandlerFunc) (*openai.Client, *httptest.Server) 
 	srv := httptest.NewServer(handler)
 	cfg := openai.DefaultConfig("test")
 	cfg.BaseURL = srv.URL + "/"
-	cfg.HTTPClient = srv.Client()
+	c := srv.Client()
+	c.Timeout = openAITimeout
+	cfg.HTTPClient = c
 	return openai.NewClientWithConfig(cfg), srv
 }
 
