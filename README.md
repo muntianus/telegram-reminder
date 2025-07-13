@@ -52,3 +52,7 @@ docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KE
 ```
 
 
+
+## License
+
+Released under the [MIT License](LICENSE).
