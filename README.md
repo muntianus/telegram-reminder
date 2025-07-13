@@ -52,4 +52,11 @@ Run the container:
 docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KEY=your_api_key telegram-bot
 ```
 
+You can also run the bot using `docker-compose`. Copy `.env.example` to `.env`, fill in the required values, then start the service:
+
+```sh
+cp .env.example .env
+docker-compose up -d
+```
+
 

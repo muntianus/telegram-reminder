@@ -9,6 +9,7 @@ RUN go build -o bot
 
 FROM alpine:latest
 WORKDIR /app
+RUN apk add --no-cache ca-certificates tzdata
 COPY --from=builder /app/bot ./bot
 CMD ["./bot"]
 
