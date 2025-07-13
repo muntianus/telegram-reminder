@@ -81,3 +81,19 @@ Enable and start the service:
 sudo systemctl enable --now telegram-bot.service
 ```
 
+
+## Docker
+
+Build the image:
+
+```sh
+docker build -t telegram-bot .
+```
+
+Run the container:
+
+```sh
+docker run -e TELEGRAM_TOKEN=your_token -e OPENAI_API_KEY=your_api_key telegram-bot
+```
+
+
