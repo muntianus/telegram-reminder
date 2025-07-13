@@ -9,7 +9,7 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 
 ## Requirements
 
-* Go 1.20+
+* Go 1.24+
 * Telegram bot token (`TELEGRAM_TOKEN`)
 * Destination chat ID (`CHAT_ID`)
 * OpenAI API key (`OPENAI_API_KEY`)
