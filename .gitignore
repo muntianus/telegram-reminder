@@ -1,3 +1,5 @@
+.env
+
 # Go build artifacts
 /bin/
 /build/
