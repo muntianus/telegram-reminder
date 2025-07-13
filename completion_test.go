@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -34,7 +35,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	defer srv.Close()
 
 	msg := openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: "prompt"}
-	got, err := chatCompletion(client, []openai.ChatCompletionMessage{msg})
+	got, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +53,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 	})
 	defer srv.Close()
 
-	got, err := chatCompletion(client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	got, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,7 +69,7 @@ func TestChatCompletionError(t *testing.T) {
 	})}
 	client := openai.NewClientWithConfig(cfg)
 
-	_, err := chatCompletion(client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	_, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err == nil {
 		t.Fatal("expected error")
 	}
