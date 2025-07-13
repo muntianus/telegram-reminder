@@ -66,14 +66,29 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<EOF
+            set -e
+
             cd /opt/telegram-reminder/telegram-reminder
-            
+
             echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" > .env
             echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
             echo "CHAT_ID=${{ secrets.CHAT_ID }}" >> .env
             echo "DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}" >> .env
 
             docker pull ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
+
             docker compose down || true
             docker compose up -d
+
+            echo "[✅] Контейнер поднят. Проверяем статус..."
+            sleep 2
+            docker compose ps
+
+            echo "[✅] Проверка процесса..."
+            if ! docker inspect -f '{{.State.Running}}' telegram-reminder | grep true; then
+              echo "[❌] Контейнер не запущен"
+              exit 1
+            fi
+
+            echo "[🎉] Деплой завершён успешно."
           EOF
