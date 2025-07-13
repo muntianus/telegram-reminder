@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -109,21 +107,11 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 }
 
 func main() {
-	telegramToken := os.Getenv("TELEGRAM_TOKEN")
-	chatIDStr := os.Getenv("CHAT_ID")
-	openaiKey := os.Getenv("OPENAI_API_KEY")
-	if telegramToken == "" || chatIDStr == "" || openaiKey == "" {
-		log.Fatal("Set TELEGRAM_TOKEN, CHAT_ID, OPENAI_API_KEY env vars")
-	}
-
-	if envModel := os.Getenv("OPENAI_MODEL"); envModel != "" {
-		currentModel = envModel
-	}
-
-	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	telegramToken, chatID, openaiKey, model, err := loadConfig()
 	if err != nil {
-		log.Fatalf("invalid CHAT_ID: %v", err)
+		log.Fatal(err)
 	}
+	currentModel = model
 
 	bot, err := tb.NewBot(tb.Settings{Token: telegramToken})
 	if err != nil {
