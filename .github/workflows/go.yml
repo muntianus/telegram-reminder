@@ -19,6 +19,7 @@ jobs:
 
       - run: go vet ./...
 
+
       - name: Auto format with gofmt
         run: |
           gofmt -w -s $(git ls-files '*.go')
@@ -33,6 +34,13 @@ jobs:
             git commit -m "style: auto-format via gofmt"
             git push
           fi
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+            | sh -s -- -b $(go env GOPATH)/bin v1.57.2
+
+      - run: golangci-lint run
 
       - run: go build ./...
       - run: go test ./...
