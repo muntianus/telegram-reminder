@@ -1,22 +1,49 @@
-name: Build and Deploy
+name: Build & Deploy
+
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-deploy:
+
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build Docker
-        run: docker build -t telegram-reminder:latest .
-      - name: Push & Deploy
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          docker login ...
-          docker push ...
-          ssh root@vps "docker pull ... && docker stack deploy ..."
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest .
+          docker push ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.5.5
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOS'
+            cd /opt/telegram-reminder/telegram-reminder
+            # Обновляем .env
+            cat > .env << ENV
+TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+ENV
+
+            # Подтягиваем образ и перезапускаем
+            docker pull ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
+            docker-compose down
+            docker-compose up -d
+          EOS
