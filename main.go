@@ -187,6 +187,30 @@ func main() {
 		return c.Send(fmt.Sprintf("Model set to %s", payload))
 	})
 
+	bot.Handle("/lunch", func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := systemCompletion(ctx, client, lunchIdeaPrompt)
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(text)
+	})
+
+	bot.Handle("/brief", func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		defer cancel()
+
+		text, err := systemCompletion(ctx, client, dailyBriefPrompt)
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(text)
+	})
+
 	bot.Handle("/chat", func(c tb.Context) error {
 		q := strings.TrimSpace(c.Message().Payload)
 		if q == "" {
