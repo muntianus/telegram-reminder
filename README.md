@@ -210,6 +210,11 @@ BRIEF_TIME=20:00
 
 На Ubuntu VPS логи сервиса, запущенного через `systemd`, можно смотреть командой `journalctl -u telegram-reminder -f`. Если бот работает в Docker, используйте `docker logs -f telegram-reminder`.
 
+## Python version
+
+A simplified implementation in Python is available in `pybot.py`. It supports the main commands and reads the same environment variables. Install dependencies with `pip install python-telegram-bot openai pyyaml apscheduler` and run `python pybot.py`.
+
+
 ## Лицензия
 
 Проект распространяется на условиях [MIT License](LICENSE).
