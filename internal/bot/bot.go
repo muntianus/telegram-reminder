@@ -343,12 +343,13 @@ func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 		if t.Name == "" {
 			continue
 		}
-		prompt := applyTemplate(t.Prompt)
+		tcopy := t
 		cmd := "/" + t.Name
 		b.Handle(cmd, func(c tb.Context) error {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
 
+			prompt := applyTemplate(tcopy.Prompt)
 			text, err := SystemCompletion(ctx, client, prompt)
 			if err != nil {
 				log.Printf("openai error: %v", err)
@@ -372,11 +373,12 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 	TasksMu.Unlock()
 
 	for _, t := range tasks {
-		prompt := applyTemplate(t.Prompt)
+		tcopy := t
 		job := func() {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
 
+			prompt := applyTemplate(tcopy.Prompt)
 			text, err := SystemCompletion(ctx, client, prompt)
 			if err != nil {
 				log.Printf("openai error: %v", err)
