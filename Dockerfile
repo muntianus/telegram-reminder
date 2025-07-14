@@ -1,15 +1,24 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.4
 
-FROM golang:1.24-alpine AS builder
+FROM --platform=${BUILDPLATFORM} golang:1.24-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
+
 COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN go build -o bot
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
-FROM alpine:latest
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -ldflags="-s -w" -o /bot .
+
+FROM gcr.io/distroless/static
 WORKDIR /app
-RUN apk add --no-cache ca-certificates tzdata
-COPY --from=builder /app/bot ./bot
-CMD ["./bot"]
+COPY --from=builder /bot /app/bot
+USER nonroot:nonroot
+ENTRYPOINT ["/app/bot"]
 
