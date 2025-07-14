@@ -40,6 +40,7 @@ const (
 )
 
 const OpenAITimeout = 40 * time.Second
+const BlockchainTimeout = 10 * time.Second
 
 const Version = "0.1.0"
 
@@ -52,7 +53,8 @@ const CommandsList = `/chat <сообщение> – задать боту во�
 /lunch – немедленно запросить идеи на обед
 /brief – немедленно запросить вечерний дайджест
 /tasks – вывести текущее расписание задач
-/task [имя] – список задач или запуск выбранной`
+/task [имя] – список задач или запуск выбранной
+/blockchain – метрики сети биткоина`
 
 var StartupMessage = fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, CommandsList)
 
@@ -586,6 +588,39 @@ func Run(cfg config.Config) error {
 			return c.Send("OpenAI error")
 		}
 		return c.Send(text)
+	})
+
+	b.Handle("/blockchain", func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), BlockchainTimeout)
+		defer cancel()
+
+		apiURL := cfg.BlockchainAPI
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+		if err != nil {
+			log.Printf("blockchain req: %v", err)
+			return c.Send("blockchain error")
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("blockchain call: %v", err)
+			return c.Send("blockchain error")
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			log.Printf("blockchain status: %v", resp.Status)
+			return c.Send("blockchain error")
+		}
+		var st struct {
+			MarketPriceUSD float64 `json:"market_price_usd"`
+			NTx            int64   `json:"n_tx"`
+			HashRate       float64 `json:"hash_rate"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
+			log.Printf("blockchain decode: %v", err)
+			return c.Send("blockchain error")
+		}
+		msg := fmt.Sprintf("BTC price: $%.2f\nTransactions: %d\nHash rate: %.2f", st.MarketPriceUSD, st.NTx, st.HashRate)
+		return c.Send(msg)
 	})
 
 	b.Handle("/chat", func(c tb.Context) error {
