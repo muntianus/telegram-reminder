@@ -113,7 +113,7 @@ func LoadTasks() ([]Task, error) {
 	if fn := os.Getenv("TASKS_FILE"); fn != "" {
 		tasks, bp, err := readTasksFile(fn)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 		if bp != "" {
 			BasePrompt = bp
@@ -141,6 +141,8 @@ func LoadTasks() ([]Task, error) {
 			return tasks, nil
 		}
 	}
+
+	log.Print("tasks.yml not found; using default tasks")
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
 	briefTime := envDefault("BRIEF_TIME", DefaultBriefTime)
