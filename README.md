@@ -38,6 +38,7 @@
 * Время вечернего дайджеста (`BRIEF_TIME`, опционально, по умолчанию `20:00`)
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
 * Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
+* URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
 
 ## Добавление бота в каналы и группы
 
@@ -81,6 +82,7 @@ go run main.go
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
 - `WHITELIST_FILE` – путь к файлу со списком чатов (по умолчанию `whitelist.json`)
+- `BLOCKCHAIN_API` – URL API блокчейна для команды `/blockchain`
 
 Пример `.env` и `tasks.yml`:
 
@@ -92,6 +94,7 @@ LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
 WHITELIST_FILE=whitelist.json
+BLOCKCHAIN_API=https://api.blockchain.info/stats
 ```
 
 ```yaml
@@ -198,6 +201,7 @@ LUNCH_TIME=13:00
 BRIEF_TIME=20:00
 # CHAT_ID=123456789
 # WHITELIST_FILE=whitelist.json
+# BLOCKCHAIN_API=https://api.blockchain.info/stats
 ```
 
 Если контейнер не стартует, проверьте логи командой `docker logs <container>`, чтобы увидеть сообщения об ошибках.

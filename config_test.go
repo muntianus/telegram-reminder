@@ -11,12 +11,13 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("CHAT_ID", "99")
 	t.Setenv("OPENAI_API_KEY", "key")
 	t.Setenv("OPENAI_MODEL", "model")
+	t.Setenv("BLOCKCHAIN_API", "http://example.com")
 
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" {
+	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" || cfg.BlockchainAPI != "http://example.com" {
 		t.Fatalf("unexpected values: %+v", cfg)
 	}
 }
