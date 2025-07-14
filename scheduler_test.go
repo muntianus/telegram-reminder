@@ -76,3 +76,35 @@ func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
 		}
 	}
 }
+
+func TestScheduleDailyMessagesFromTasksJSON(t *testing.T) {
+	tasks := `[{"name":"a","prompt":"p1","time":"08:00"},{"name":"b","prompt":"p2","time":"22:45"}]`
+	t.Setenv("TASKS_JSON", tasks)
+
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	s := gocron.NewScheduler(loc)
+	s.CustomTime(fakeTime{onNow: func(l *time.Location) time.Time {
+		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
+	}})
+
+	bot.ScheduleDailyMessages(s, nil, nil, 0)
+
+	s.StartAsync()
+	s.Stop()
+
+	times := []string{}
+	for _, job := range s.Jobs() {
+		times = append(times, job.NextRun().In(loc).Format("15:04"))
+	}
+	want := map[string]bool{"08:00": false, "22:45": false}
+	for _, tm := range times {
+		if _, ok := want[tm]; ok {
+			want[tm] = true
+		}
+	}
+	for tstr, ok := range want {
+		if !ok {
+			t.Fatalf("time %s not scheduled", tstr)
+		}
+	}
+}
