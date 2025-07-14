@@ -72,16 +72,19 @@ func chatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
 }
 
+// systemCompletion generates a reply to a system-level prompt using OpenAI.
 func systemCompletion(ctx context.Context, client ChatCompleter, prompt string) (string, error) {
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}}
 	return chatCompletion(ctx, client, msgs)
 }
 
+// userCompletion generates a reply to a user's message using OpenAI.
 func userCompletion(ctx context.Context, client ChatCompleter, message string) (string, error) {
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: message}}
 	return chatCompletion(ctx, client, msgs)
 }
 
+// scheduleDailyMessages sets up the daily lunch idea and brief messages.
 func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
 	if _, err := s.Every(1).Day().At("13:00").Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)

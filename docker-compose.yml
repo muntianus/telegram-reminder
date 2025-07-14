@@ -1,8 +1,8 @@
-version: '3.8'
+# /opt/telegram-reminder/telegram-reminder/docker-compose.yml
 services:
-  bot:
+  telegram-reminder:            # ← вместо bot
     image: ${DOCKERHUB_USER}/telegram-reminder:latest
+    container_name: telegram-reminder  # фиксируем именно такое имя
     restart: unless-stopped
     env_file:
       - .env
-

@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.21.7
+          go-version: 1.24.x
 
       - name: Clean Go cache
         run: go clean -cache -modcache -testcache
@@ -65,36 +65,38 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOF'
             set -e
-
             cd /opt/telegram-reminder/telegram-reminder
 
+            # Подставляем переменные из GitHub Secrets
             DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
+            TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            CHAT_ID="${{ secrets.CHAT_ID }}"
 
             echo "[📦] Обновляем .env..."
-            echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" > .env
-            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-            echo "CHAT_ID=${{ secrets.CHAT_ID }}" >> .env
-            echo "DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}" >> .env
+            printf '%s\n' \
+              "TELEGRAM_TOKEN=${TELEGRAM_TOKEN}" \
+              "OPENAI_API_KEY=${OPENAI_API_KEY}" \
+              "CHAT_ID=${CHAT_ID}" \
+              "DOCKERHUB_USER=${DOCKERHUB_USER}" > .env
 
             echo "[🔍] Проверяем docker-compose.yml..."
             if [ ! -f docker-compose.yml ]; then
               echo "[⚠️] Не найден docker-compose.yml — создаём..."
-              cat > docker-compose.yml <<EOC
-                services:
-                  telegram-reminder:
-                    image: \${DOCKERHUB_USER}/telegram-reminder:latest
-                    container_name: telegram-reminder
-                    restart: always
-                    env_file:
-                      - .env
-                EOC
+              printf '%s\n' \
+                "services:" \
+                "  telegram-reminder:" \
+                "    image: ${DOCKERHUB_USER}/telegram-reminder:latest" \
+                "    container_name: telegram-reminder" \
+                "    restart: always" \
+                "    env_file:" \
+                "      - .env" > docker-compose.yml
             fi
 
             echo "[🐳] Пуллим образ и перезапускаем контейнер..."
-            docker pull \${DOCKERHUB_USER}/telegram-reminder:latest
-
+            docker pull ${DOCKERHUB_USER}/telegram-reminder:latest
             docker compose down || true
             docker compose up -d
 
