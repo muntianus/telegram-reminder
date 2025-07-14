@@ -67,6 +67,46 @@ On startup the bot also posts "джарвис в сети, обновление 
 Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
 Before submitting a pull request, run `gofmt -w -s` to format the code and `go vet ./...` to check for issues. Install the linter with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.0` and then run `golangci-lint run`.
 
+## Custom task configuration
+
+The bot reads additional tasks from a YAML file referenced by the `TASKS_FILE` environment variable. Each task requires a `time` field in `HH:MM` format and a `prompt` field with the text to send.
+
+Supported environment variables and keys:
+
+- `TELEGRAM_TOKEN` – Telegram bot token
+- `CHAT_ID` – numeric destination chat ID
+- `OPENAI_API_KEY` – OpenAI API key
+- `OPENAI_MODEL` – OpenAI model name (optional, defaults to `gpt-4o`)
+- `LUNCH_TIME` – time for the lunch idea digest
+- `BRIEF_TIME` – time for the evening brief
+- `TASKS_FILE` – path to a YAML file with custom scheduled prompts
+
+Example `.env` and `tasks.yml`:
+
+```ini
+TELEGRAM_TOKEN=123456:ABC-DEF
+CHAT_ID=123456789
+OPENAI_API_KEY=sk-xxxxxxxx
+OPENAI_MODEL=gpt-4o
+LUNCH_TIME=12:00
+BRIEF_TIME=18:00
+TASKS_FILE=tasks.yml
+```
+
+```yaml
+tasks:
+  - time: "09:00"
+    prompt: "daily goal micro-actions"
+  - time: "19:00"
+    prompt: "crypto trend"
+```
+
+After setting the variables above, start the bot with:
+
+```sh
+go run main.go
+```
+
 ## Deploying on a server
 
 1. Install Go on your server.
