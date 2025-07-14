@@ -61,27 +61,32 @@ func envDefault(key, def string) string {
 	return def
 }
 
-// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
-// is provided, it falls back to the legacy LUNCH_TIME and BRIEF_TIME
-// environment variables.
-func LoadTasks() ([]Task, error) {
-	if fn := os.Getenv("TASKS_FILE"); fn != "" {
-		data, err := os.ReadFile(fn)
-		if err != nil {
+// readTasksFile loads tasks from a YAML or JSON file.
+func readTasksFile(fn string) ([]Task, error) {
+	data, err := os.ReadFile(fn)
+	if err != nil {
+		return nil, err
+	}
+	tasks := []Task{}
+	ext := strings.ToLower(filepath.Ext(fn))
+	if ext == ".yaml" || ext == ".yml" {
+		if err := yaml.Unmarshal(data, &tasks); err != nil {
 			return nil, err
 		}
-		tasks := []Task{}
-		ext := strings.ToLower(filepath.Ext(fn))
-		if ext == ".yaml" || ext == ".yml" {
-			if err := yaml.Unmarshal(data, &tasks); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := json.Unmarshal(data, &tasks); err != nil {
-				return nil, err
-			}
+	} else {
+		if err := json.Unmarshal(data, &tasks); err != nil {
+			return nil, err
 		}
-		return tasks, nil
+	}
+	return tasks, nil
+}
+
+// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
+// is provided, it falls back to tasks.yml or the legacy LUNCH_TIME and
+// BRIEF_TIME environment variables.
+func LoadTasks() ([]Task, error) {
+	if fn := os.Getenv("TASKS_FILE"); fn != "" {
+		return readTasksFile(fn)
 	}
 
 	if txt := os.Getenv("TASKS_JSON"); txt != "" {
@@ -90,6 +95,12 @@ func LoadTasks() ([]Task, error) {
 			return nil, err
 		}
 		return tasks, nil
+	}
+
+	for _, fn := range []string{"tasks.yml", "tasks.yaml"} {
+		if _, err := os.Stat(fn); err == nil {
+			return readTasksFile(fn)
+		}
 	}
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
@@ -245,6 +256,31 @@ func FormatTasks(tasks []Task) string {
 	return strings.TrimSpace(b.String())
 }
 
+// RegisterTaskCommands creates bot handlers for all named tasks.
+func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
+	TasksMu.RLock()
+	tasks := append([]Task(nil), LoadedTasks...)
+	TasksMu.RUnlock()
+	for _, t := range tasks {
+		if t.Name == "" {
+			continue
+		}
+		prompt := t.Prompt
+		cmd := "/" + t.Name
+		b.Handle(cmd, func(c tb.Context) error {
+			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+			defer cancel()
+
+			text, err := SystemCompletion(ctx, client, prompt)
+			if err != nil {
+				log.Printf("openai error: %v", err)
+				return c.Send("OpenAI error")
+			}
+			return c.Send(text)
+		})
+	}
+}
+
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
 func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
 	tasks, err := LoadTasks()
@@ -352,6 +388,7 @@ func Run(cfg config.Config) error {
 
 	scheduler := gocron.NewScheduler(moscowTZ)
 	ScheduleDailyMessages(scheduler, client, b, cfg.ChatID)
+	RegisterTaskCommands(b, client)
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartAsync()
