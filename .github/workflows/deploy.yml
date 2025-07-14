@@ -85,6 +85,7 @@ jobs:
             DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
             TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            TASKS_FILE="{{ secrets.TASKS_FILE }}"
             CHAT_ID="${{ secrets.CHAT_ID }}"
 
             echo "[📦] Обновляем .env..."
