@@ -37,9 +37,7 @@
 * Время идей на обед (`LUNCH_TIME`, опционально, по умолчанию `13:00`)
 * Время вечернего дайджеста (`BRIEF_TIME`, опционально, по умолчанию `20:00`)
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
-* Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
-* URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
-* Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`)
+* Остальные параметры (файл whitelist, URL API блокчейна, уровень логирования, модель OpenAI) задаются в `config.yml`
 
 ## Добавление бота в каналы и группы
 
@@ -82,9 +80,7 @@ go run main.go
 - `LUNCH_TIME` – время для идей на обед
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
-- `WHITELIST_FILE` – путь к файлу со списком чатов (по умолчанию `whitelist.json`)
-- `BLOCKCHAIN_API` – URL API блокчейна для команды `/blockchain`
-- `LOG_LEVEL` – уровень логирования (`debug`, `info`, `warn` или `error`)
+- Остальные параметры (файл whitelist, URL API блокчейна, уровень логирования) читаются из `config.yml`
 
 Пример `.env` и `tasks.yml`:
 
@@ -95,8 +91,15 @@ OPENAI_MODEL=gpt-4o
 LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
-WHITELIST_FILE=whitelist.json
-BLOCKCHAIN_API=https://api.blockchain.info/stats
+```
+
+Пример `config.yml`:
+
+```yaml
+log_level: info
+whitelist_file: whitelist.json
+blockchain_api: https://api.blockchain.info/stats
+openai_model: gpt-4o
 ```
 
 ```yaml
@@ -202,8 +205,6 @@ OPENAI_MODEL=gpt-4o
 LUNCH_TIME=13:00
 BRIEF_TIME=20:00
 # CHAT_ID=123456789
-# WHITELIST_FILE=whitelist.json
-# BLOCKCHAIN_API=https://api.blockchain.info/stats
 ```
 
 Если контейнер не стартует, проверьте логи командой `docker logs <container>`, чтобы увидеть сообщения об ошибках.

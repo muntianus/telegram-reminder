@@ -10,7 +10,7 @@ import (
 
 // WhitelistFile is the path to the JSON file that stores chat IDs.
 // It can be overridden in tests.
-var WhitelistFile = envDefault("WHITELIST_FILE", "whitelist.json")
+var WhitelistFile = "whitelist.json"
 var wlMu sync.Mutex
 
 func loadWhitelist() ([]int64, error) {

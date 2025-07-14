@@ -13,7 +13,14 @@ var (
 )
 
 func init() {
-	L = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: parseLevel(os.Getenv("LOG_LEVEL"))}))
+	Init("info")
+}
+
+// Init configures the global logger with the given level.
+func Init(level string) {
+	mu.Lock()
+	defer mu.Unlock()
+	L = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: parseLevel(level)}))
 }
 
 // SetLogger replaces the global logger. Useful in tests.
