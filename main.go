@@ -133,6 +133,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create bot: %v", err)
 	}
+	log.Printf("Authorized as %s", bot.Me.Username)
 
 	cfg := openai.DefaultConfig(openaiKey)
 	cfg.HTTPClient = &http.Client{Timeout: openAITimeout}
