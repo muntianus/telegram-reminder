@@ -33,8 +33,9 @@ go run main.go
 ```
 
 Once started, the scheduler will automatically send the two daily messages at the specified times.
+On startup the bot also posts "джарвис в сети, обновление произошло успешно" to confirm a successful deployment.
 Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
-Before submitting a pull request, run `gofmt -w` to ensure all Go files are properly formatted.
+Before submitting a pull request, run `gofmt -w` to ensure all Go files are properly formatted. Install the linter with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2` and then run `golangci-lint run`.
 
 ## Deploying on a server
 

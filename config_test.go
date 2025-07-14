@@ -3,6 +3,7 @@ package main
 import "testing"
 
 func TestLoadConfigSuccess(t *testing.T) {
+
 	t.Setenv("TELEGRAM_TOKEN", "tok")
 	t.Setenv("CHAT_ID", "42")
 	t.Setenv("OPENAI_API_KEY", "key")
@@ -20,6 +21,7 @@ func TestLoadConfigMissing(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "")
 	t.Setenv("CHAT_ID", "")
 	t.Setenv("OPENAI_API_KEY", "key")
+
 	_, _, _, _, err := loadConfig()
 	if err == nil {
 		t.Fatal("expected error")
@@ -30,6 +32,7 @@ func TestLoadConfigInvalidChatID(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "tok")
 	t.Setenv("CHAT_ID", "bad")
 	t.Setenv("OPENAI_API_KEY", "key")
+
 	_, _, _, _, err := loadConfig()
 	if err == nil {
 		t.Fatal("expected error")
