@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -267,8 +268,21 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 				log.Printf("openai error: %v", err)
 				return
 			}
-			if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
-				log.Printf("telegram send error: %v", err)
+			if chatID != 0 {
+				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
+					log.Printf("telegram send error: %v", err)
+				}
+				return
+			}
+			ids, err := LoadWhitelist()
+			if err != nil {
+				log.Printf("load whitelist: %v", err)
+				return
+			}
+			for _, id := range ids {
+				if _, err := b.Send(tb.ChatID(id), text); err != nil {
+					log.Printf("telegram send error: %v", err)
+				}
 			}
 		}
 
@@ -291,8 +305,21 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 
 // SendStartupMessage notifies the chat that the bot is running.
 func SendStartupMessage(b MessageSender, chatID int64) {
-	if _, err := b.Send(tb.ChatID(chatID), StartupMessage); err != nil {
-		log.Printf("telegram send error: %v", err)
+	if chatID != 0 {
+		if _, err := b.Send(tb.ChatID(chatID), StartupMessage); err != nil {
+			log.Printf("telegram send error: %v", err)
+		}
+		return
+	}
+	ids, err := LoadWhitelist()
+	if err != nil {
+		log.Printf("load whitelist: %v", err)
+		return
+	}
+	for _, id := range ids {
+		if _, err := b.Send(tb.ChatID(id), StartupMessage); err != nil {
+			log.Printf("telegram send error: %v", err)
+		}
 	}
 }
 
@@ -307,6 +334,12 @@ func Run(cfg config.Config) error {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
 	log.Printf("Authorized as %s", b.Me.Username)
+
+	if cfg.ChatID != 0 {
+		if err := AddIDToWhitelist(cfg.ChatID); err != nil {
+			log.Printf("whitelist add: %v", err)
+		}
+	}
 
 	oaCfg := openai.DefaultConfig(cfg.OpenAIKey)
 	oaCfg.HTTPClient = &http.Client{Timeout: OpenAITimeout}
@@ -327,6 +360,41 @@ func Run(cfg config.Config) error {
 
 	b.Handle("/ping", func(c tb.Context) error {
 		return c.Send("pong")
+	})
+
+	b.Handle("/start", func(c tb.Context) error {
+		if err := AddIDToWhitelist(c.Chat().ID); err != nil {
+			log.Printf("whitelist add: %v", err)
+		}
+		return c.Send("Бот активирован")
+	})
+
+	b.Handle("/whitelist", func(c tb.Context) error {
+		ids, err := LoadWhitelist()
+		if err != nil {
+			log.Printf("load whitelist: %v", err)
+			return c.Send("whitelist error")
+		}
+		if len(ids) == 0 {
+			return c.Send("Whitelist is empty")
+		}
+		return c.Send(FormatWhitelist(ids))
+	})
+
+	b.Handle("/remove", func(c tb.Context) error {
+		payload := strings.TrimSpace(c.Message().Payload)
+		if payload == "" {
+			return c.Send("Usage: /remove <id>")
+		}
+		id, err := strconv.ParseInt(payload, 10, 64)
+		if err != nil {
+			return c.Send("Bad ID")
+		}
+		if err := RemoveIDFromWhitelist(id); err != nil {
+			log.Printf("remove id: %v", err)
+			return c.Send("remove error")
+		}
+		return c.Send("Removed")
 	})
 
 	b.Handle("/tasks", func(c tb.Context) error {

@@ -11,6 +11,9 @@
 
 - `/chat <сообщение>` – задать боту вопрос и получить ответ от OpenAI.
 - `/ping` – проверка состояния, в ответ приходит `pong`.
+- `/start` – добавить текущий чат в рассылку.
+- `/whitelist` – показать список подключённых чатов.
+- `/remove <id>` – убрать чат из списка.
 - `/model [имя]` – показать или сменить модель генерации (по умолчанию `gpt-4o`).
 - `/lunch` – немедленно запросить идеи на обед.
 - `/brief` – немедленно запросить вечерний дайджест.
@@ -26,25 +29,19 @@
 
 * Go 1.24+
 * Токен телеграм-бота (`TELEGRAM_TOKEN`)
-* ID целевого чата (`CHAT_ID`)
+* ID целевого чата (`CHAT_ID`, опционально)
 * Ключ API OpenAI (`OPENAI_API_KEY`)
 * Имя модели OpenAI (`OPENAI_MODEL`, опционально, по умолчанию `gpt-4o`)
 * Время идей на обед (`LUNCH_TIME`, опционально, по умолчанию `13:00`)
 * Время вечернего дайджеста (`BRIEF_TIME`, опционально, по умолчанию `20:00`)
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
+* Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
 
 ## Добавление бота в каналы и группы
 
 1. Пригласите бота в нужный канал или группу.
 2. Дайте ему права отправлять сообщения (администратор в каналах).
-3. Отправьте тестовое сообщение в этот чат и откройте:
-
-   ```
-   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
-   ```
-
-   В ответе JSON будет поле `chat.id` — это числовой ID канала.
-4. Укажите полученное значение в переменной окружения `CHAT_ID` при запуске бота.
+3. Напишите команду `/start` в этом чате. Идентификатор будет сохранён в whitelist, и бот начнёт присылать сообщения.
 
 ## Запуск локально
 
@@ -52,10 +49,13 @@
 
 ```sh
 export TELEGRAM_TOKEN=your_telegram_token
-export CHAT_ID=123456789
 export OPENAI_API_KEY=your_openai_key
 export LUNCH_TIME=13:00
 export BRIEF_TIME=20:00
+
+# опционально задайте начальный чат
+# export CHAT_ID=123456789
+# файл whitelist создастся автоматически
 
 # или загрузите задачи из файла
 # export TASKS_FILE=tasks.yaml
@@ -72,23 +72,24 @@ go run main.go
 Поддерживаемые переменные окружения и ключи:
 
 - `TELEGRAM_TOKEN` – токен телеграм-бота
-- `CHAT_ID` – числовой ID чата назначения
+- `CHAT_ID` – числовой ID чата назначения (опционально)
 - `OPENAI_API_KEY` – ключ API OpenAI
 - `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `gpt-4o`)
 - `LUNCH_TIME` – время для идей на обед
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
+- `WHITELIST_FILE` – путь к файлу со списком чатов (по умолчанию `whitelist.json`)
 
 Пример `.env` и `tasks.yml`:
 
 ```ini
 TELEGRAM_TOKEN=123456:ABC-DEF
-CHAT_ID=123456789
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4o
 LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
+WHITELIST_FILE=whitelist.json
 ```
 
 ```yaml
@@ -133,7 +134,7 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 Запуск контейнера:
 
 ```sh
-docker run -e TELEGRAM_TOKEN=your_token -e CHAT_ID=your_chat_id -e OPENAI_API_KEY=your_api_key \
+docker run -e TELEGRAM_TOKEN=your_token -e OPENAI_API_KEY=your_api_key \
   -e LUNCH_TIME=13:00 -e BRIEF_TIME=20:00 telegram-bot
 ```
 
@@ -156,7 +157,7 @@ docker-compose up -d
 
 * `DOCKERHUB_USER` и `DOCKERHUB_TOKEN` для публикации образа.
 * `VPS_SSH_KEY`, `VPS_USER` и `VPS_HOST` для подключения к серверу.
-* `TELEGRAM_TOKEN`, `OPENAI_API_KEY`, `CHAT_ID` и при необходимости `OPENAI_MODEL` для заполнения `.env` во время деплоя.
+* `TELEGRAM_TOKEN`, `OPENAI_API_KEY` и при необходимости `CHAT_ID` и `OPENAI_MODEL` для заполнения `.env` во время деплоя.
 
 После завершения деплоя зайдите на VPS и выполните `docker ps`, чтобы убедиться, что контейнер запущен.
 
@@ -165,18 +166,18 @@ docker-compose up -d
 Контейнер завершит работу сразу, если не заданы обязательные переменные окружения:
 
 * `TELEGRAM_TOKEN`
-* `CHAT_ID` (числовой ID)
 * `OPENAI_API_KEY`
 
 Убедитесь, что эти значения переданы через окружение или указаны в файле `.env`. Корректный пример `.env`:
 
 ```ini
 TELEGRAM_TOKEN=123456:ABC-DEF
-CHAT_ID=123456789
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4o
 LUNCH_TIME=13:00
 BRIEF_TIME=20:00
+# CHAT_ID=123456789
+# WHITELIST_FILE=whitelist.json
 ```
 
 Если контейнер не стартует, проверьте логи командой `docker logs <container>`, чтобы увидеть сообщения об ошибках.
