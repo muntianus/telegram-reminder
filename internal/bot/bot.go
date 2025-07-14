@@ -156,14 +156,22 @@ func UserCompletion(ctx context.Context, client ChatCompleter, message string) (
 }
 
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
-func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
+// It validates the time strings and returns an error if they are invalid.
+func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) error {
 	lunchTime := os.Getenv("LUNCH_TIME")
 	if lunchTime == "" {
 		lunchTime = "13:00"
 	}
+	if _, err := time.Parse("15:04", lunchTime); err != nil {
+		return fmt.Errorf("invalid LUNCH_TIME: %w", err)
+	}
+
 	briefTime := os.Getenv("BRIEF_TIME")
 	if briefTime == "" {
 		briefTime = "20:00"
+	}
+	if _, err := time.Parse("15:04", briefTime); err != nil {
+		return fmt.Errorf("invalid BRIEF_TIME: %w", err)
 	}
 
 	if _, err := s.Every(1).Day().At(lunchTime).Do(func() {
@@ -197,6 +205,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 	}); err != nil {
 		log.Printf("schedule job: %v", err)
 	}
+
+	return nil
 }
 
 // SendStartupMessage notifies the chat that the bot is running.
@@ -228,7 +238,9 @@ func Run(cfg config.Config) error {
 	}
 
 	scheduler := gocron.NewScheduler(moscowTZ)
-	ScheduleDailyMessages(scheduler, client, b, cfg.ChatID)
+	if err := ScheduleDailyMessages(scheduler, client, b, cfg.ChatID); err != nil {
+		return err
+	}
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartAsync()
