@@ -127,24 +127,24 @@ func sendStartupMessage(bot MessageSender, chatID int64) {
 }
 
 func main() {
-	telegramToken, chatID, openaiKey, openaiModel, err := loadConfig()
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if openaiModel != "" {
-		currentModel = openaiModel
+	if cfg.OpenAIModel != "" {
+		currentModel = cfg.OpenAIModel
 	}
 
-	bot, err := tb.NewBot(tb.Settings{Token: telegramToken})
+	bot, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
 	if err != nil {
 		log.Fatalf("failed to create bot: %v", err)
 	}
 	log.Printf("Authorized as %s", bot.Me.Username)
 
-	cfg := openai.DefaultConfig(openaiKey)
-	cfg.HTTPClient = &http.Client{Timeout: openAITimeout}
-	client := openai.NewClientWithConfig(cfg)
+	oaCfg := openai.DefaultConfig(cfg.OpenAIKey)
+	oaCfg.HTTPClient = &http.Client{Timeout: openAITimeout}
+	client := openai.NewClientWithConfig(oaCfg)
 
 	moscowTZ, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
@@ -152,12 +152,12 @@ func main() {
 	}
 
 	scheduler := gocron.NewScheduler(moscowTZ)
-	scheduleDailyMessages(scheduler, client, bot, chatID)
+	scheduleDailyMessages(scheduler, client, bot, cfg.ChatID)
 
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartAsync()
 
-	sendStartupMessage(bot, chatID)
+	sendStartupMessage(bot, cfg.ChatID)
 
 	bot.Handle("/ping", func(c tb.Context) error {
 		return c.Send("pong")
