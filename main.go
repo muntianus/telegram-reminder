@@ -152,6 +152,10 @@ func main() {
 
 	sendStartupMessage(bot, chatID)
 
+	bot.Handle("/ping", func(c tb.Context) error {
+		return c.Send("pong")
+	})
+
 	bot.Handle("/model", func(c tb.Context) error {
 		payload := strings.TrimSpace(c.Message().Payload)
 		if payload == "" {
