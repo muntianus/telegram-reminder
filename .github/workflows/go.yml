@@ -20,6 +20,9 @@ jobs:
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
 
+      - name: Run golangci-lint
+        run: golangci-lint run ./...
+
       - run: go vet ./...
 
       - name: Auto format with gofmt
