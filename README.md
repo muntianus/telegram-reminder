@@ -15,6 +15,9 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 - `/lunch` – immediately request a lunch idea digest.
 - `/brief` – immediately request the daily brief.
 
+The bot registers these commands with Telegram on startup, so they appear in the
+client's command list automatically.
+
 The `/model` command controls which OpenAI model the bot uses for replies. When
 called without arguments it prints the currently selected model and lists a few
 supported options (`gpt-4o`, `gpt-4-turbo`, `gpt-3.5-turbo`). To switch the

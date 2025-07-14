@@ -151,11 +151,23 @@ func main() {
 		currentModel = cfg.OpenAIModel
 	}
 
-	bot, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
-	if err != nil {
-		log.Fatalf("failed to create bot: %v", err)
-	}
-	log.Printf("Authorized as %s", bot.Me.Username)
+       bot, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
+       if err != nil {
+               log.Fatalf("failed to create bot: %v", err)
+       }
+       log.Printf("Authorized as %s", bot.Me.Username)
+
+       // Register bot commands so that they show up in Telegram's UI.
+       commands := []tb.Command{
+               {Text: "chat", Description: "ask the bot any question"},
+               {Text: "ping", Description: "health check"},
+               {Text: "model", Description: "show or change OpenAI model"},
+               {Text: "lunch", Description: "request a lunch idea"},
+               {Text: "brief", Description: "request the daily brief"},
+       }
+       if err := bot.SetCommands(commands); err != nil {
+               log.Printf("set commands: %v", err)
+       }
 
 	oaCfg := openai.DefaultConfig(cfg.OpenAIKey)
 	oaCfg.HTTPClient = &http.Client{Timeout: openAITimeout}
