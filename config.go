@@ -12,15 +12,14 @@ import (
 // required variables are missing, an error is returned.
 func loadConfig() (telegramToken string, chatID int64, openaiKey string, openaiModel string, err error) {
 	telegramToken = os.Getenv("TELEGRAM_TOKEN")
-	chatIDStr := os.Getenv("CHAT_ID")
-	openaiKey = os.Getenv("OPENAI_API_KEY")
-	openaiModel = os.Getenv("OPENAI_MODEL")
-	if openaiModel == "" {
-		openaiModel = "gpt-4o"
+	if telegramToken == "" {
+		err = fmt.Errorf("TELEGRAM_TOKEN not set")
+		return
 	}
 
-	if telegramToken == "" || chatIDStr == "" || openaiKey == "" {
-		err = fmt.Errorf("missing required environment variables")
+	chatIDStr := os.Getenv("CHAT_ID")
+	if chatIDStr == "" {
+		err = fmt.Errorf("CHAT_ID not set")
 		return
 	}
 
@@ -28,6 +27,17 @@ func loadConfig() (telegramToken string, chatID int64, openaiKey string, openaiM
 	if convErr != nil {
 		err = fmt.Errorf("invalid CHAT_ID: %w", convErr)
 		return
+	}
+
+	openaiKey = os.Getenv("OPENAI_API_KEY")
+	if openaiKey == "" {
+		err = fmt.Errorf("OPENAI_API_KEY not set")
+		return
+	}
+
+	openaiModel = os.Getenv("OPENAI_MODEL")
+	if openaiModel == "" {
+		openaiModel = "gpt-4o"
 	}
 	return
 }
