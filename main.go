@@ -99,7 +99,7 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 			log.Printf("telegram send error: %v", err)
 		}
 	}); err != nil {
-		log.Printf("schedule error: %v", err)
+		log.Printf("schedule job: %v", err)
 	}
 
 	if _, err := s.Every(1).Day().At("20:00").Do(func() {
@@ -115,7 +115,7 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 			log.Printf("telegram send error: %v", err)
 		}
 	}); err != nil {
-		log.Printf("schedule error: %v", err)
+		log.Printf("schedule job: %v", err)
 	}
 }
 
