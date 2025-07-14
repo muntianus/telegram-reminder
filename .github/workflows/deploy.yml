@@ -93,7 +93,8 @@ jobs:
               "TELEGRAM_TOKEN=${TELEGRAM_TOKEN}" \
               "OPENAI_API_KEY=${OPENAI_API_KEY}" \
               "CHAT_ID=${CHAT_ID}" \
-              "DOCKERHUB_USER=${DOCKERHUB_USER}" > .env
+              "DOCKERHUB_USER=${DOCKERHUB_USER}" \
+              "TASKS_FILE=tasks.yml" > .env
 
             echo "[🔍] Проверяем docker-compose.yml..."
             if [ ! -f docker-compose.yml ]; then
