@@ -1,3 +1,4 @@
+// main.go запускает Telegram-бота и настраивает его работу.
 package main
 
 import (
@@ -141,6 +142,7 @@ func sendStartupMessage(bot MessageSender, chatID int64) {
 	}
 }
 
+// main инициализирует бота и запускает обработчики.
 func main() {
 	cfg, err := loadConfig()
 	if err != nil {

@@ -1,3 +1,4 @@
+// completion_test.go проверяет работу chatCompletion с поддельным сервером.
 package main
 
 import (
@@ -11,7 +12,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// helper to create client backed by test server
+// newTestClient создаёт клиента OpenAI поверх тестового сервера.
 func newTestClient(handler http.HandlerFunc) (*openai.Client, *httptest.Server) {
 	srv := httptest.NewServer(handler)
 	cfg := openai.DefaultConfig("test")
@@ -22,6 +23,7 @@ func newTestClient(handler http.HandlerFunc) (*openai.Client, *httptest.Server) 
 	return openai.NewClientWithConfig(cfg), srv
 }
 
+// TestChatCompletionSuccess проверяет успешный ответ от OpenAI.
 func TestChatCompletionSuccess(t *testing.T) {
 	var received openai.ChatCompletionRequest
 	client, srv := newTestClient(func(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +51,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	}
 }
 
+// TestChatCompletionNoChoices проверяет обработку пустого ответа.
 func TestChatCompletionNoChoices(t *testing.T) {
 	client, srv := newTestClient(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewEncoder(w).Encode(openai.ChatCompletionResponse{}); err != nil {
@@ -66,6 +69,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 	}
 }
 
+// TestChatCompletionError проверяет обработку ошибки запроса.
 func TestChatCompletionError(t *testing.T) {
 	cfg := openai.DefaultConfig("test")
 	cfg.HTTPClient = &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
@@ -79,8 +83,10 @@ func TestChatCompletionError(t *testing.T) {
 	}
 }
 
+// roundTripperFunc реализует http.RoundTripper через функцию.
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
+// RoundTrip вызывает вложенную функцию для выполнения запроса.
 func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
 }

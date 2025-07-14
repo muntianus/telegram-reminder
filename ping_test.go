@@ -1,3 +1,4 @@
+// ping_test.go тестирует обработчик команды /ping.
 package main
 
 import (
@@ -12,12 +13,14 @@ type fakeCtx struct {
 	msg    interface{}
 }
 
+// Send сохраняет отправленное сообщение.
 func (f *fakeCtx) Send(what interface{}, opts ...interface{}) error {
 	f.called = true
 	f.msg = what
 	return nil
 }
 
+// TestPingHandler проверяет ответ на команду /ping.
 func TestPingHandler(t *testing.T) {
 	bot, err := tb.NewBot(tb.Settings{Offline: true})
 	if err != nil {

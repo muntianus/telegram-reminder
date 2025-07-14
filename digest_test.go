@@ -1,3 +1,4 @@
+// digest_test.go проверяет команды /lunch и /brief.
 package main
 
 import (
@@ -10,6 +11,7 @@ import (
 
 type fakeDigestClient struct{ text string }
 
+// CreateChatCompletion возвращает заранее заданный текст.
 func (f fakeDigestClient) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
 	return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
 		{Message: openai.ChatCompletionMessage{Content: f.text}},
@@ -22,12 +24,14 @@ type digestCtx struct {
 	msg    interface{}
 }
 
+// Send сохраняет отправленное сообщение в контекст.
 func (d *digestCtx) Send(what interface{}, opts ...interface{}) error {
 	d.called = true
 	d.msg = what
 	return nil
 }
 
+// TestLunchCommand проверяет работу команды /lunch.
 func TestLunchCommand(t *testing.T) {
 	client := fakeDigestClient{text: "idea"}
 	bot, err := tb.NewBot(tb.Settings{Offline: true})
@@ -58,6 +62,7 @@ func TestLunchCommand(t *testing.T) {
 	}
 }
 
+// TestBriefCommand проверяет работу команды /brief.
 func TestBriefCommand(t *testing.T) {
 	client := fakeDigestClient{text: "brief"}
 	bot, err := tb.NewBot(tb.Settings{Offline: true})

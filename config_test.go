@@ -1,7 +1,9 @@
+// config_test.go содержит тесты функции загрузки конфигурации.
 package main
 
 import "testing"
 
+// TestLoadConfigSuccess проверяет успешное чтение конфигурации.
 func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "token")
 	t.Setenv("CHAT_ID", "99")
@@ -17,6 +19,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	}
 }
 
+// TestLoadConfigMissing проверяет отсутствие обязательных переменных.
 func TestLoadConfigMissing(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "")
 	t.Setenv("CHAT_ID", "99")
@@ -28,6 +31,7 @@ func TestLoadConfigMissing(t *testing.T) {
 	}
 }
 
+// TestLoadConfigBadChatID проверяет обработку неверного идентификатора чата.
 func TestLoadConfigBadChatID(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "token")
 	t.Setenv("CHAT_ID", "bad")

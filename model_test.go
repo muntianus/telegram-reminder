@@ -1,3 +1,4 @@
+// model_test.go проверяет команду /model.
 package main
 
 import (
@@ -14,13 +15,16 @@ type modelFakeCtx struct {
 	sent interface{}
 }
 
+// Message возвращает тестовое сообщение.
 func (f *modelFakeCtx) Message() *tb.Message { return f.msg }
 
+// Send сохраняет отправленное сообщение.
 func (f *modelFakeCtx) Send(what interface{}, opts ...interface{}) error {
 	f.sent = what
 	return nil
 }
 
+// TestModelCommand проверяет переключение модели.
 func TestModelCommand(t *testing.T) {
 	bot, err := tb.NewBot(tb.Settings{Offline: true})
 	if err != nil {

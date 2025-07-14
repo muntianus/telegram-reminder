@@ -1,3 +1,4 @@
+// config.go содержит загрузку конфигурации из переменных окружения.
 package main
 
 import (
@@ -6,10 +7,7 @@ import (
 	"strconv"
 )
 
-// loadConfig reads environment variables and validates them.
-// TELEGRAM_TOKEN, CHAT_ID and OPENAI_API_KEY are required.
-// OPENAI_MODEL is optional.
-// Config holds environment configuration values.
+// Config хранит параметры окружения.
 type Config struct {
 	TelegramToken string
 	ChatID        int64
@@ -17,6 +15,7 @@ type Config struct {
 	OpenAIModel   string
 }
 
+// loadConfig читает переменные окружения и возвращает конфигурацию.
 func loadConfig() (Config, error) {
 	var cfg Config
 

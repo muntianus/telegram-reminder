@@ -1,3 +1,4 @@
+// startup_test.go тестирует сообщение о запуске бота.
 package main
 
 import (
@@ -12,6 +13,7 @@ type fakeBot struct {
 	called    bool
 }
 
+// Send сохраняет параметры вызова для проверки.
 func (f *fakeBot) Send(recipient tb.Recipient, what interface{}, opts ...interface{}) (*tb.Message, error) {
 	f.recipient = recipient
 	f.message = what
@@ -19,6 +21,7 @@ func (f *fakeBot) Send(recipient tb.Recipient, what interface{}, opts ...interfa
 	return nil, nil
 }
 
+// TestSendStartupMessage проверяет отправку приветствия при старте.
 func TestSendStartupMessage(t *testing.T) {
 	fb := &fakeBot{}
 	sendStartupMessage(fb, 42)

@@ -1,3 +1,4 @@
+// scheduler_test.go проверяет планировщик ежедневных сообщений.
 package main
 
 import (
@@ -11,10 +12,16 @@ type fakeTime struct {
 	onNow func(*time.Location) time.Time
 }
 
-func (f fakeTime) Now(loc *time.Location) time.Time     { return f.onNow(loc) }
-func (f fakeTime) Unix(sec int64, nsec int64) time.Time { return time.Unix(sec, nsec) }
-func (f fakeTime) Sleep(d time.Duration)                { time.Sleep(d) }
+// Now возвращает фиксированное время.
+func (f fakeTime) Now(loc *time.Location) time.Time { return f.onNow(loc) }
 
+// Unix создаёт время из секунд и наносекунд.
+func (f fakeTime) Unix(sec int64, nsec int64) time.Time { return time.Unix(sec, nsec) }
+
+// Sleep ожидает указанную длительность.
+func (f fakeTime) Sleep(d time.Duration) { time.Sleep(d) }
+
+// TestScheduleDailyMessagesTimes проверяет расписание по умолчанию.
 func TestScheduleDailyMessagesTimes(t *testing.T) {
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	s := gocron.NewScheduler(loc)
@@ -44,6 +51,7 @@ func TestScheduleDailyMessagesTimes(t *testing.T) {
 	}
 }
 
+// TestScheduleDailyMessagesCustomTimes проверяет пользовательские времена.
 func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
 	t.Setenv("LUNCH_TIME", "10:15")
 	t.Setenv("BRIEF_TIME", "21:30")
