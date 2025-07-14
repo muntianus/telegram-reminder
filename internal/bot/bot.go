@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	tb "gopkg.in/telebot.v3"
 	yaml "gopkg.in/yaml.v3"
 	"telegram-reminder/internal/config"
+	"telegram-reminder/internal/logger"
 )
 
 // Prompt templates
@@ -144,7 +144,7 @@ func LoadTasks() ([]Task, error) {
 		}
 	}
 
-	log.Print("tasks.yml not found; using default tasks")
+	logger.L.Info("tasks.yml not found; using default tasks")
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
 	briefTime := envDefault("BRIEF_TIME", DefaultBriefTime)
@@ -356,7 +356,7 @@ func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 			prompt := applyTemplate(tcopy.Prompt)
 			text, err := SystemCompletion(ctx, client, prompt)
 			if err != nil {
-				log.Printf("openai error: %v", err)
+				logger.L.Error("openai error", "err", err)
 				return c.Send("OpenAI error")
 			}
 			return c.Send(text)
@@ -368,7 +368,7 @@ func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
 	tasks, err := LoadTasks()
 	if err != nil {
-		log.Printf("load tasks: %v", err)
+		logger.L.Error("load tasks", "err", err)
 		return
 	}
 
@@ -382,26 +382,31 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
 
+			logger.L.Info("running task", "task", tcopy.Name)
 			prompt := applyTemplate(tcopy.Prompt)
 			text, err := SystemCompletion(ctx, client, prompt)
 			if err != nil {
-				log.Printf("openai error: %v", err)
+				logger.L.Error("openai error", "err", err)
 				return
 			}
 			if chatID != 0 {
 				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
-					log.Printf("telegram send error: %v", err)
+					logger.L.Error("telegram send", "err", err)
+				} else {
+					logger.L.Debug("sent", "chat_id", chatID)
 				}
 				return
 			}
 			ids, err := LoadWhitelist()
 			if err != nil {
-				log.Printf("load whitelist: %v", err)
+				logger.L.Error("load whitelist", "err", err)
 				return
 			}
 			for _, id := range ids {
 				if _, err := b.Send(tb.ChatID(id), text); err != nil {
-					log.Printf("telegram send error: %v", err)
+					logger.L.Error("telegram send", "err", err, "chat_id", id)
+				} else {
+					logger.L.Debug("sent", "chat_id", id)
 				}
 			}
 		}
@@ -418,7 +423,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 			_, jerr = s.Every(1).Day().At(timeStr).Do(job)
 		}
 		if jerr != nil {
-			log.Printf("schedule job: %v", jerr)
+			logger.L.Error("schedule job", "err", jerr)
 		}
 	}
 }
@@ -427,18 +432,18 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 func SendStartupMessage(b MessageSender, chatID int64) {
 	if chatID != 0 {
 		if _, err := b.Send(tb.ChatID(chatID), StartupMessage); err != nil {
-			log.Printf("telegram send error: %v", err)
+			logger.L.Error("telegram send", "err", err)
 		}
 		return
 	}
 	ids, err := LoadWhitelist()
 	if err != nil {
-		log.Printf("load whitelist: %v", err)
+		logger.L.Error("load whitelist", "err", err)
 		return
 	}
 	for _, id := range ids {
 		if _, err := b.Send(tb.ChatID(id), StartupMessage); err != nil {
-			log.Printf("telegram send error: %v", err)
+			logger.L.Error("telegram send", "err", err)
 		}
 	}
 }
@@ -453,11 +458,11 @@ func Run(cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
-	log.Printf("Authorized as %s", b.Me.Username)
+	logger.L.Info("authorized", "username", b.Me.Username)
 
 	if cfg.ChatID != 0 {
 		if err := AddIDToWhitelist(cfg.ChatID); err != nil {
-			log.Printf("whitelist add: %v", err)
+			logger.L.Error("whitelist add", "err", err)
 		}
 	}
 
@@ -474,7 +479,7 @@ func Run(cfg config.Config) error {
 	ScheduleDailyMessages(scheduler, client, b, cfg.ChatID)
 	RegisterTaskCommands(b, client)
 
-	log.Println("Scheduler started. Sending briefs…")
+	logger.L.Info("scheduler started")
 	scheduler.StartAsync()
 
 	SendStartupMessage(b, cfg.ChatID)
@@ -485,7 +490,7 @@ func Run(cfg config.Config) error {
 
 	b.Handle("/start", func(c tb.Context) error {
 		if err := AddIDToWhitelist(c.Chat().ID); err != nil {
-			log.Printf("whitelist add: %v", err)
+			logger.L.Error("whitelist add", "err", err)
 		}
 		return c.Send("Бот активирован")
 	})
@@ -493,7 +498,7 @@ func Run(cfg config.Config) error {
 	b.Handle("/whitelist", func(c tb.Context) error {
 		ids, err := LoadWhitelist()
 		if err != nil {
-			log.Printf("load whitelist: %v", err)
+			logger.L.Error("load whitelist", "err", err)
 			return c.Send("whitelist error")
 		}
 		if len(ids) == 0 {
@@ -512,7 +517,7 @@ func Run(cfg config.Config) error {
 			return c.Send("Bad ID")
 		}
 		if err := RemoveIDFromWhitelist(id); err != nil {
-			log.Printf("remove id: %v", err)
+			logger.L.Error("remove id", "err", err)
 			return c.Send("remove error")
 		}
 		return c.Send("Removed")
@@ -543,7 +548,7 @@ func Run(cfg config.Config) error {
 		prompt := applyTemplate(t.Prompt)
 		text, err := SystemCompletion(ctx, client, prompt)
 		if err != nil {
-			log.Printf("openai error: %v", err)
+			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
 		return c.Send(text)
@@ -572,7 +577,7 @@ func Run(cfg config.Config) error {
 
 		text, err := SystemCompletion(ctx, client, LunchIdeaPrompt)
 		if err != nil {
-			log.Printf("openai error: %v", err)
+			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
 		return c.Send(text)
@@ -584,7 +589,7 @@ func Run(cfg config.Config) error {
 
 		text, err := SystemCompletion(ctx, client, DailyBriefPrompt)
 		if err != nil {
-			log.Printf("openai error: %v", err)
+			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
 		return c.Send(text)
@@ -597,17 +602,17 @@ func Run(cfg config.Config) error {
 		apiURL := cfg.BlockchainAPI
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 		if err != nil {
-			log.Printf("blockchain req: %v", err)
+			logger.L.Error("blockchain req", "err", err)
 			return c.Send("blockchain error")
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			log.Printf("blockchain call: %v", err)
+			logger.L.Error("blockchain call", "err", err)
 			return c.Send("blockchain error")
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			log.Printf("blockchain status: %v", resp.Status)
+			logger.L.Error("blockchain status", "status", resp.Status)
 			return c.Send("blockchain error")
 		}
 		var st struct {
@@ -616,7 +621,7 @@ func Run(cfg config.Config) error {
 			HashRate       float64 `json:"hash_rate"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
-			log.Printf("blockchain decode: %v", err)
+			logger.L.Error("blockchain decode", "err", err)
 			return c.Send("blockchain error")
 		}
 		msg := fmt.Sprintf("BTC price: $%.2f\nTransactions: %d\nHash rate: %.2f", st.MarketPriceUSD, st.NTx, st.HashRate)
@@ -633,7 +638,7 @@ func Run(cfg config.Config) error {
 
 		text, err := UserCompletion(ctx, client, q)
 		if err != nil {
-			log.Printf("openai error: %v", err)
+			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
 		_, err = c.Bot().Send(c.Sender(), text)
