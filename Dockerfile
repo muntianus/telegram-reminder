@@ -19,6 +19,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 FROM gcr.io/distroless/static
 WORKDIR /app
 COPY --from=builder /bot /app/bot
+COPY --from=builder /app/tasks.yml /app/tasks.yml
 USER nonroot:nonroot
 ENTRYPOINT ["/app/bot"]
 
