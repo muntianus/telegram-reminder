@@ -28,9 +28,11 @@ func TestChatCompletionSuccess(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
-		json.NewEncoder(w).Encode(openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
+		if err := json.NewEncoder(w).Encode(openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
 			{Message: openai.ChatCompletionMessage{Content: "  hi "}},
-		}})
+		}}); err != nil {
+			t.Fatalf("encode: %v", err)
+		}
 	})
 	defer srv.Close()
 
@@ -49,7 +51,9 @@ func TestChatCompletionSuccess(t *testing.T) {
 
 func TestChatCompletionNoChoices(t *testing.T) {
 	client, srv := newTestClient(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(openai.ChatCompletionResponse{})
+		if err := json.NewEncoder(w).Encode(openai.ChatCompletionResponse{}); err != nil {
+			t.Fatalf("encode: %v", err)
+		}
 	})
 	defer srv.Close()
 

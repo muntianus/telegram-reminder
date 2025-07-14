@@ -83,7 +83,7 @@ func userCompletion(ctx context.Context, client ChatCompleter, message string) (
 }
 
 func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
-	s.Every(1).Day().At("13:00").Do(func() {
+	if _, err := s.Every(1).Day().At("13:00").Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
 		defer cancel()
 
@@ -95,9 +95,11 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
 			log.Printf("telegram send error: %v", err)
 		}
-	})
+	}); err != nil {
+		log.Printf("schedule job: %v", err)
+	}
 
-	s.Every(1).Day().At("20:00").Do(func() {
+	if _, err := s.Every(1).Day().At("20:00").Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
 		defer cancel()
 
@@ -109,7 +111,9 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 		if _, err := bot.Send(tb.ChatID(chatID), text); err != nil {
 			log.Printf("telegram send error: %v", err)
 		}
-	})
+	}); err != nil {
+		log.Printf("schedule job: %v", err)
+	}
 }
 
 // sendStartupMessage notifies the chat that the bot is running.
