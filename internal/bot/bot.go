@@ -538,7 +538,8 @@ func Run(cfg config.Config) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 
-		text, err := SystemCompletion(ctx, client, t.Prompt)
+		prompt := applyTemplate(t.Prompt)
+		text, err := SystemCompletion(ctx, client, prompt)
 		if err != nil {
 			log.Printf("openai error: %v", err)
 			return c.Send("OpenAI error")
