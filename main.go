@@ -48,8 +48,13 @@ type MessageSender interface {
 }
 
 var (
-	currentModel = "gpt-4o"
-	modelMu      sync.RWMutex
+	currentModel    = "gpt-4o"
+	modelMu         sync.RWMutex
+	supportedModels = []string{
+		openai.GPT4o,
+		openai.GPT4Turbo,
+		openai.GPT3Dot5Turbo,
+	}
 )
 
 // chatCompletion sends messages to OpenAI and returns the reply text using the current model.
@@ -179,7 +184,10 @@ func main() {
 			modelMu.RLock()
 			cur := currentModel
 			modelMu.RUnlock()
-			return c.Send(fmt.Sprintf("Current model: %s", cur))
+			return c.Send(fmt.Sprintf(
+				"Current model: %s\nSupported: %s",
+				cur, strings.Join(supportedModels, ", "),
+			))
 		}
 		modelMu.Lock()
 		currentModel = payload

@@ -33,7 +33,10 @@ func TestModelCommand(t *testing.T) {
 			modelMu.RLock()
 			cur := currentModel
 			modelMu.RUnlock()
-			return c.Send(fmt.Sprintf("Current model: %s", cur))
+			return c.Send(fmt.Sprintf(
+				"Current model: %s\nSupported: %s",
+				cur, strings.Join(supportedModels, ", "),
+			))
 		}
 		modelMu.Lock()
 		currentModel = payload
@@ -49,7 +52,7 @@ func TestModelCommand(t *testing.T) {
 	if err := bot.Trigger("/model", ctx); err != nil {
 		t.Fatalf("trigger no arg: %v", err)
 	}
-	if ctx.sent != "Current model: gpt-4o" {
+	if ctx.sent != fmt.Sprintf("Current model: gpt-4o\nSupported: %s", strings.Join(supportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx.sent)
 	}
 
@@ -72,7 +75,7 @@ func TestModelCommand(t *testing.T) {
 	if err := bot.Trigger("/model", ctx3); err != nil {
 		t.Fatalf("trigger query after set: %v", err)
 	}
-	if ctx3.sent != "Current model: gpt-3" {
+	if ctx3.sent != fmt.Sprintf("Current model: gpt-3\nSupported: %s", strings.Join(supportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx3.sent)
 	}
 }
