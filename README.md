@@ -10,6 +10,7 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 ## Commands
 
 - `/chat <message>` – ask the bot any question and get a reply from OpenAI.
+- `/ping` – health check that replies `pong`.
 - `/model [name]` – show or change the model used for generation (default `gpt-4o`).
 
 ## Requirements
