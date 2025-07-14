@@ -97,6 +97,7 @@ jobs:
 
             echo "[🐳] Пуллим образ и перезапускаем контейнер..."
             docker pull ${DOCKERHUB_USER}/telegram-reminder:latest
+            docker rm -f telegram-reminder || true
             docker compose down || true
             docker compose up -d
 
