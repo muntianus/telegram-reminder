@@ -183,6 +183,11 @@ var (
 	}
 )
 
+var (
+	LoadedTasks []Task
+	TasksMu     sync.RWMutex
+)
+
 // chatCompletion sends messages to OpenAI and returns the reply text using the current model.
 func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage) (string, error) {
 	ModelMu.RLock()
@@ -216,6 +221,29 @@ func UserCompletion(ctx context.Context, client ChatCompleter, message string) (
 	return ChatCompletion(ctx, client, msgs)
 }
 
+// FormatTasks returns a text summary of tasks with their time or cron expression.
+func FormatTasks(tasks []Task) string {
+	if len(tasks) == 0 {
+		return "no tasks"
+	}
+	var b strings.Builder
+	for i, t := range tasks {
+		when := t.Cron
+		if when == "" {
+			when = t.Time
+			if when == "" {
+				when = "00:00"
+			}
+		}
+		name := t.Name
+		if name == "" {
+			name = fmt.Sprintf("task %d", i+1)
+		}
+		fmt.Fprintf(&b, "%s - %s\n", when, name)
+	}
+	return strings.TrimSpace(b.String())
+}
+
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
 func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
 	tasks, err := LoadTasks()
@@ -223,6 +251,10 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 		log.Printf("load tasks: %v", err)
 		return
 	}
+
+	TasksMu.Lock()
+	LoadedTasks = tasks
+	TasksMu.Unlock()
 
 	for _, t := range tasks {
 		prompt := t.Prompt
@@ -295,6 +327,13 @@ func Run(cfg config.Config) error {
 
 	b.Handle("/ping", func(c tb.Context) error {
 		return c.Send("pong")
+	})
+
+	b.Handle("/tasks", func(c tb.Context) error {
+		TasksMu.RLock()
+		tasks := append([]Task(nil), LoadedTasks...)
+		TasksMu.RUnlock()
+		return c.Send(FormatTasks(tasks))
 	})
 
 	b.Handle("/model", func(c tb.Context) error {
