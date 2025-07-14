@@ -71,12 +71,12 @@ jobs:
             cd /opt/telegram-reminder/telegram-reminder
 
             echo "[📦] Обновляем .env..."
-            cat > .env <<EOT
+            cat <<EOF2 > .env
               TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
               OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
               CHAT_ID=${{ secrets.CHAT_ID }}
               DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}
-            EOT
+            EOF2
 
             echo "[🔍] Проверяем docker-compose.yml..."
             if [ ! -f docker-compose.yml ]; then
