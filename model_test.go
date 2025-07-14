@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	tb "gopkg.in/telebot.v3"
+	botpkg "telegram-reminder/internal/bot"
 )
 
 type modelFakeCtx struct {
@@ -30,29 +31,29 @@ func TestModelCommand(t *testing.T) {
 	bot.Handle("/model", func(c tb.Context) error {
 		payload := strings.TrimSpace(c.Message().Payload)
 		if payload == "" {
-			modelMu.RLock()
-			cur := currentModel
-			modelMu.RUnlock()
+			botpkg.ModelMu.RLock()
+			cur := botpkg.CurrentModel
+			botpkg.ModelMu.RUnlock()
 			return c.Send(fmt.Sprintf(
 				"Current model: %s\nSupported: %s",
-				cur, strings.Join(supportedModels, ", "),
+				cur, strings.Join(botpkg.SupportedModels, ", "),
 			))
 		}
-		modelMu.Lock()
-		currentModel = payload
-		modelMu.Unlock()
+		botpkg.ModelMu.Lock()
+		botpkg.CurrentModel = payload
+		botpkg.ModelMu.Unlock()
 		return c.Send(fmt.Sprintf("Model set to %s", payload))
 	})
 
-	modelMu.Lock()
-	currentModel = "gpt-4o"
-	modelMu.Unlock()
+	botpkg.ModelMu.Lock()
+	botpkg.CurrentModel = "gpt-4o"
+	botpkg.ModelMu.Unlock()
 
 	ctx := &modelFakeCtx{msg: &tb.Message{Payload: ""}}
 	if err := bot.Trigger("/model", ctx); err != nil {
 		t.Fatalf("trigger no arg: %v", err)
 	}
-	if ctx.sent != fmt.Sprintf("Current model: gpt-4o\nSupported: %s", strings.Join(supportedModels, ", ")) {
+	if ctx.sent != fmt.Sprintf("Current model: gpt-4o\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx.sent)
 	}
 
@@ -64,9 +65,9 @@ func TestModelCommand(t *testing.T) {
 		t.Errorf("unexpected response: %v", ctx2.sent)
 	}
 
-	modelMu.RLock()
-	got := currentModel
-	modelMu.RUnlock()
+	botpkg.ModelMu.RLock()
+	got := botpkg.CurrentModel
+	botpkg.ModelMu.RUnlock()
 	if got != "gpt-3" {
 		t.Errorf("currentModel not updated: %s", got)
 	}
@@ -75,7 +76,7 @@ func TestModelCommand(t *testing.T) {
 	if err := bot.Trigger("/model", ctx3); err != nil {
 		t.Fatalf("trigger query after set: %v", err)
 	}
-	if ctx3.sent != fmt.Sprintf("Current model: gpt-3\nSupported: %s", strings.Join(supportedModels, ", ")) {
+	if ctx3.sent != fmt.Sprintf("Current model: gpt-3\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx3.sent)
 	}
 }

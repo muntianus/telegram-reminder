@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"telegram-reminder/internal/config"
+)
 
 func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("TELEGRAM_TOKEN", "token")
@@ -8,7 +12,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "key")
 	t.Setenv("OPENAI_MODEL", "model")
 
-	cfg, err := loadConfig()
+	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -22,7 +26,7 @@ func TestLoadConfigMissing(t *testing.T) {
 	t.Setenv("CHAT_ID", "99")
 	t.Setenv("OPENAI_API_KEY", "key")
 
-	_, err := loadConfig()
+	_, err := config.Load()
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -33,7 +37,7 @@ func TestLoadConfigBadChatID(t *testing.T) {
 	t.Setenv("CHAT_ID", "bad")
 	t.Setenv("OPENAI_API_KEY", "key")
 
-	_, err := loadConfig()
+	_, err := config.Load()
 	if err == nil {
 		t.Fatal("expected error")
 	}

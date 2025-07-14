@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -6,9 +6,6 @@ import (
 	"strconv"
 )
 
-// loadConfig reads environment variables and validates them.
-// TELEGRAM_TOKEN, CHAT_ID and OPENAI_API_KEY are required.
-// OPENAI_MODEL is optional.
 // Config holds environment configuration values.
 type Config struct {
 	TelegramToken string
@@ -17,7 +14,8 @@ type Config struct {
 	OpenAIModel   string
 }
 
-func loadConfig() (Config, error) {
+// Load reads environment variables and validates them.
+func Load() (Config, error) {
 	var cfg Config
 
 	telegramToken := os.Getenv("TELEGRAM_TOKEN")
