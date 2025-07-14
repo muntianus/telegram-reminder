@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,10 @@ const (
 
 const OpenAITimeout = 40 * time.Second
 const StartupMessage = "джарвис в сети, обновление произошло успешно"
+const (
+	DefaultLunchTime = "13:00"
+	DefaultBriefTime = "20:00"
+)
 
 // Task represents a scheduled job definition.
 type Task struct {
@@ -46,6 +51,13 @@ type Task struct {
 	Prompt string `json:"prompt" yaml:"prompt"`
 	Time   string `json:"time,omitempty" yaml:"time,omitempty"`
 	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
+}
+
+func envDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 // LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
@@ -58,7 +70,8 @@ func LoadTasks() ([]Task, error) {
 			return nil, err
 		}
 		tasks := []Task{}
-		if strings.HasSuffix(strings.ToLower(fn), ".yaml") || strings.HasSuffix(strings.ToLower(fn), ".yml") {
+		ext := strings.ToLower(filepath.Ext(fn))
+		if ext == ".yaml" || ext == ".yml" {
 			if err := yaml.Unmarshal(data, &tasks); err != nil {
 				return nil, err
 			}
@@ -78,14 +91,8 @@ func LoadTasks() ([]Task, error) {
 		return tasks, nil
 	}
 
-	lunchTime := os.Getenv("LUNCH_TIME")
-	if lunchTime == "" {
-		lunchTime = "13:00"
-	}
-	briefTime := os.Getenv("BRIEF_TIME")
-	if briefTime == "" {
-		briefTime = "20:00"
-	}
+	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
+	briefTime := envDefault("BRIEF_TIME", DefaultBriefTime)
 	return []Task{
 		{Name: "lunch", Prompt: LunchIdeaPrompt, Time: lunchTime},
 		{Name: "brief", Prompt: DailyBriefPrompt, Time: briefTime},
