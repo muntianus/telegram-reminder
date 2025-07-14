@@ -98,11 +98,13 @@ TASKS_FILE=tasks.yml
 ```
 
 ```yaml
-tasks:
-  - time: "09:00"
-    prompt: "daily goal micro-actions"
-  - time: "19:00"
-    prompt: "crypto trend"
+- time: "10:00"
+  prompt: "земля: цена за сотку"
+- time: "12:00"
+  prompt: "микродействия"
+- time: "13:00"
+  prompt: "крипто тренд"
+...
 ```
 
 After setting the variables above, start the bot with:
