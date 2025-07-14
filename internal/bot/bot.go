@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
+	yaml "gopkg.in/yaml.v3"
 	"telegram-reminder/internal/config"
 )
 
@@ -37,6 +39,58 @@ const (
 
 const OpenAITimeout = 40 * time.Second
 const StartupMessage = "джарвис в сети, обновление произошло успешно"
+
+// Task represents a scheduled job definition.
+type Task struct {
+	Name   string `json:"name" yaml:"name"`
+	Prompt string `json:"prompt" yaml:"prompt"`
+	Time   string `json:"time,omitempty" yaml:"time,omitempty"`
+	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
+}
+
+// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
+// is provided, it falls back to the legacy LUNCH_TIME and BRIEF_TIME
+// environment variables.
+func LoadTasks() ([]Task, error) {
+	if fn := os.Getenv("TASKS_FILE"); fn != "" {
+		data, err := os.ReadFile(fn)
+		if err != nil {
+			return nil, err
+		}
+		tasks := []Task{}
+		if strings.HasSuffix(strings.ToLower(fn), ".yaml") || strings.HasSuffix(strings.ToLower(fn), ".yml") {
+			if err := yaml.Unmarshal(data, &tasks); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := json.Unmarshal(data, &tasks); err != nil {
+				return nil, err
+			}
+		}
+		return tasks, nil
+	}
+
+	if txt := os.Getenv("TASKS_JSON"); txt != "" {
+		tasks := []Task{}
+		if err := json.Unmarshal([]byte(txt), &tasks); err != nil {
+			return nil, err
+		}
+		return tasks, nil
+	}
+
+	lunchTime := os.Getenv("LUNCH_TIME")
+	if lunchTime == "" {
+		lunchTime = "13:00"
+	}
+	briefTime := os.Getenv("BRIEF_TIME")
+	if briefTime == "" {
+		briefTime = "20:00"
+	}
+	return []Task{
+		{Name: "lunch", Prompt: LunchIdeaPrompt, Time: lunchTime},
+		{Name: "brief", Prompt: DailyBriefPrompt, Time: briefTime},
+	}, nil
+}
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
 type ChatCompleter interface {
@@ -157,45 +211,42 @@ func UserCompletion(ctx context.Context, client ChatCompleter, message string) (
 
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
 func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
-	lunchTime := os.Getenv("LUNCH_TIME")
-	if lunchTime == "" {
-		lunchTime = "13:00"
-	}
-	briefTime := os.Getenv("BRIEF_TIME")
-	if briefTime == "" {
-		briefTime = "20:00"
+	tasks, err := LoadTasks()
+	if err != nil {
+		log.Printf("load tasks: %v", err)
+		return
 	}
 
-	if _, err := s.Every(1).Day().At(lunchTime).Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
+	for _, t := range tasks {
+		prompt := t.Prompt
+		job := func() {
+			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+			defer cancel()
 
-		text, err := SystemCompletion(ctx, client, LunchIdeaPrompt)
-		if err != nil {
-			log.Printf("openai error: %v", err)
-			return
+			text, err := SystemCompletion(ctx, client, prompt)
+			if err != nil {
+				log.Printf("openai error: %v", err)
+				return
+			}
+			if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
+				log.Printf("telegram send error: %v", err)
+			}
 		}
-		if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
-			log.Printf("telegram send error: %v", err)
-		}
-	}); err != nil {
-		log.Printf("schedule job: %v", err)
-	}
 
-	if _, err := s.Every(1).Day().At(briefTime).Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-
-		text, err := SystemCompletion(ctx, client, DailyBriefPrompt)
-		if err != nil {
-			log.Printf("openai error: %v", err)
-			return
+		var jerr error
+		switch {
+		case t.Cron != "":
+			_, jerr = s.Cron(t.Cron).Do(job)
+		default:
+			timeStr := t.Time
+			if timeStr == "" {
+				timeStr = "00:00"
+			}
+			_, jerr = s.Every(1).Day().At(timeStr).Do(job)
 		}
-		if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
-			log.Printf("telegram send error: %v", err)
+		if jerr != nil {
+			log.Printf("schedule job: %v", jerr)
 		}
-	}); err != nil {
-		log.Printf("schedule job: %v", err)
 	}
 }
 
