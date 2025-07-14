@@ -71,20 +71,45 @@ On startup the bot also posts "джарвис в сети, обновление 
 Each request to OpenAI uses a 40-second timeout to avoid hanging jobs.
 Before submitting a pull request, run `gofmt -w -s` to format the code and `go vet ./...` to check for issues. Install the linter with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.0` and then run `golangci-lint run`.
 
-### Task configuration
+## Custom task configuration
 
-Custom schedules can be defined in a JSON or YAML file referenced by `TASKS_FILE` (or directly via `TASKS_JSON`). Each task entry includes a `name`, `prompt` and either a daily `time` or a `cron` expression:
+The bot reads additional tasks from a YAML file referenced by the `TASKS_FILE` environment variable. Each task requires a `time` field in `HH:MM` format and a `prompt` field with the text to send.
 
-```yaml
-- name: lunch
-  prompt: "My lunch prompt"
-  time: "13:00"
-- name: brief
-  prompt: "My brief prompt"
-  cron: "0 20 * * *"
+Supported environment variables and keys:
+
+- `TELEGRAM_TOKEN` – Telegram bot token
+- `CHAT_ID` – numeric destination chat ID
+- `OPENAI_API_KEY` – OpenAI API key
+- `OPENAI_MODEL` – OpenAI model name (optional, defaults to `gpt-4o`)
+- `LUNCH_TIME` – time for the lunch idea digest
+- `BRIEF_TIME` – time for the evening brief
+- `TASKS_FILE` – path to a YAML file with custom scheduled prompts
+
+Example `.env` and `tasks.yml`:
+
+```ini
+TELEGRAM_TOKEN=123456:ABC-DEF
+CHAT_ID=123456789
+OPENAI_API_KEY=sk-xxxxxxxx
+OPENAI_MODEL=gpt-4o
+LUNCH_TIME=12:00
+BRIEF_TIME=18:00
+TASKS_FILE=tasks.yml
 ```
 
-Set `TASKS_FILE` to the path of such file and the bot will schedule each job accordingly.
+```yaml
+tasks:
+  - time: "09:00"
+    prompt: "daily goal micro-actions"
+  - time: "19:00"
+    prompt: "crypto trend"
+```
+
+After setting the variables above, start the bot with:
+
+```sh
+go run main.go
+```
 
 ## Deploying on a server
 
