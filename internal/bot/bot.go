@@ -450,6 +450,9 @@ func SendStartupMessage(b MessageSender, chatID int64) {
 
 // Run initializes and starts the Telegram bot.
 func Run(cfg config.Config) error {
+	if cfg.WhitelistFile != "" {
+		WhitelistFile = cfg.WhitelistFile
+	}
 	if cfg.OpenAIModel != "" {
 		CurrentModel = cfg.OpenAIModel
 	}
@@ -610,7 +613,7 @@ func Run(cfg config.Config) error {
 			logger.L.Error("blockchain call", "err", err)
 			return c.Send("blockchain error")
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
 			logger.L.Error("blockchain status", "status", resp.Status)
 			return c.Send("blockchain error")

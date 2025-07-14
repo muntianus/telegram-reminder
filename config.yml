@@ -1,0 +1,4 @@
+log_level: info
+whitelist_file: whitelist.json
+blockchain_api: https://api.blockchain.info/stats
+openai_model: gpt-4o

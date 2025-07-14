@@ -14,6 +14,7 @@ func main() {
 		logger.L.Error("config load", "err", err)
 		os.Exit(1)
 	}
+	logger.Init(cfg.LogLevel)
 	if err := bot.Run(cfg); err != nil {
 		logger.L.Error("bot run", "err", err)
 		os.Exit(1)
