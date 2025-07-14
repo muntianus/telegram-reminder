@@ -6,6 +6,7 @@ require (
 	github.com/go-co-op/gocron v1.37.0
 	github.com/sashabaranov/go-openai v1.40.5
 	gopkg.in/telebot.v3 v3.3.8
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
