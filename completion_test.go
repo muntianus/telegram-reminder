@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	openai "github.com/sashabaranov/go-openai"
+	"telegram-reminder/internal/bot"
 )
 
 // helper to create client backed by test server
@@ -17,7 +18,7 @@ func newTestClient(handler http.HandlerFunc) (*openai.Client, *httptest.Server) 
 	cfg := openai.DefaultConfig("test")
 	cfg.BaseURL = srv.URL + "/"
 	c := srv.Client()
-	c.Timeout = openAITimeout
+	c.Timeout = bot.OpenAITimeout
 	cfg.HTTPClient = c
 	return openai.NewClientWithConfig(cfg), srv
 }
@@ -37,7 +38,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	defer srv.Close()
 
 	msg := openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: "prompt"}
-	got, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg})
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 	})
 	defer srv.Close()
 
-	got, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +74,7 @@ func TestChatCompletionError(t *testing.T) {
 	})}
 	client := openai.NewClientWithConfig(cfg)
 
-	_, err := chatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	_, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
 	if err == nil {
 		t.Fatal("expected error")
 	}

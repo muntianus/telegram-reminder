@@ -6,6 +6,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
+	botpkg "telegram-reminder/internal/bot"
 )
 
 type fakeDigestClient struct{ text string }
@@ -36,10 +37,10 @@ func TestLunchCommand(t *testing.T) {
 	}
 
 	bot.Handle("/lunch", func(c tb.Context) error {
-		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := systemCompletion(ctx, client, lunchIdeaPrompt)
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.LunchIdeaPrompt)
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -66,10 +67,10 @@ func TestBriefCommand(t *testing.T) {
 	}
 
 	bot.Handle("/brief", func(c tb.Context) error {
-		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := systemCompletion(ctx, client, dailyBriefPrompt)
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.DailyBriefPrompt)
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

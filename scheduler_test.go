@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
+	"telegram-reminder/internal/bot"
 )
 
 type fakeTime struct {
@@ -22,7 +23,7 @@ func TestScheduleDailyMessagesTimes(t *testing.T) {
 		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
 	}})
 
-	scheduleDailyMessages(s, nil, nil, 0)
+	bot.ScheduleDailyMessages(s, nil, nil, 0)
 
 	s.StartAsync()
 	s.Stop()
@@ -54,7 +55,7 @@ func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
 		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
 	}})
 
-	scheduleDailyMessages(s, nil, nil, 0)
+	bot.ScheduleDailyMessages(s, nil, nil, 0)
 
 	s.StartAsync()
 	s.Stop()

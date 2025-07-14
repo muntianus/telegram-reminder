@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tb "gopkg.in/telebot.v3"
+	"telegram-reminder/internal/bot"
 )
 
 type fakeBot struct {
@@ -21,14 +22,14 @@ func (f *fakeBot) Send(recipient tb.Recipient, what interface{}, opts ...interfa
 
 func TestSendStartupMessage(t *testing.T) {
 	fb := &fakeBot{}
-	sendStartupMessage(fb, 42)
+	bot.SendStartupMessage(fb, 42)
 	if !fb.called {
 		t.Fatal("send not called")
 	}
 	if id, ok := fb.recipient.(tb.ChatID); !ok || int64(id) != 42 {
 		t.Errorf("wrong recipient: %v", fb.recipient)
 	}
-	if fb.message != startupMessage {
+	if fb.message != bot.StartupMessage {
 		t.Errorf("unexpected message: %v", fb.message)
 	}
 }
