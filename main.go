@@ -232,7 +232,13 @@ func main() {
 			log.Printf("openai error: %v", err)
 			return c.Send("OpenAI error")
 		}
-		_, err = c.Bot().Send(c.Sender(), text)
+
+		to := tb.Recipient(c.Sender())
+		if !c.Message().Private() {
+			to = c.Chat()
+		}
+
+		_, err = c.Bot().Send(to, text)
 		return err
 	})
 

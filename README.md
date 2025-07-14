@@ -9,7 +9,7 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 
 ## Commands
 
-- `/chat <message>` – ask the bot any question and get a reply from OpenAI.
+- `/chat <message>` – ask the bot any question and get a reply from OpenAI. In groups the response is posted back to the same chat, while private requests are answered via DM.
 - `/ping` – health check that replies `pong`.
 - `/model [name]` – show or change the model used for generation (default `gpt-4o`).
 - `/lunch` – immediately request a lunch idea digest.
