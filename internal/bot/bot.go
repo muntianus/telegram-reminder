@@ -40,7 +40,21 @@ const (
 )
 
 const OpenAITimeout = 40 * time.Second
-const StartupMessage = "джарвис в сети, обновление произошло успешно"
+
+const Version = "0.1.0"
+
+const CommandsList = `/chat <сообщение> – задать боту вопрос
+/ping – проверка состояния
+/start – добавить текущий чат в рассылку
+/whitelist – показать список подключённых чатов
+/remove <id> – убрать чат из списка
+/model [имя] – показать или сменить модель (по умолчанию gpt-4o)
+/lunch – немедленно запросить идеи на обед
+/brief – немедленно запросить вечерний дайджест
+/tasks – вывести текущее расписание задач`
+
+var StartupMessage = fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, CommandsList)
+
 const (
 	DefaultLunchTime = "13:00"
 	DefaultBriefTime = "20:00"
