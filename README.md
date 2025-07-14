@@ -13,6 +13,15 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 - `/ping` – health check that replies `pong`.
 - `/model [name]` – show or change the model used for generation (default `gpt-4o`).
 
+The `/model` command controls which OpenAI model the bot uses for replies. When
+called without arguments it prints the currently selected model and lists a few
+supported options (`gpt-4o`, `gpt-4-turbo`, `gpt-3.5-turbo`). To switch the
+model, supply the desired name, for example:
+
+```
+/model gpt-4-turbo
+```
+
 ## Requirements
 
 * Go 1.24+
