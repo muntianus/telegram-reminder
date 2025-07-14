@@ -82,14 +82,14 @@ jobs:
             if [ ! -f docker-compose.yml ]; then
               echo "[⚠️] Не найден docker-compose.yml — создаём..."
               cat > docker-compose.yml <<EOC
-services:
-  telegram-reminder:
-    image: \${DOCKERHUB_USER}/telegram-reminder:latest
-    container_name: telegram-reminder
-    restart: always
-    env_file:
-      - .env
-EOC
+                services:
+                  telegram-reminder:
+                    image: \${DOCKERHUB_USER}/telegram-reminder:latest
+                    container_name: telegram-reminder
+                    restart: always
+                    env_file:
+                      - .env
+                EOC
             fi
 
             echo "[🐳] Пуллим образ и перезапускаем контейнер..."
