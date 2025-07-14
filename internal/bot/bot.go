@@ -51,7 +51,8 @@ const CommandsList = `/chat <сообщение> – задать боту во�
 /model [имя] – показать или сменить модель (по умолчанию gpt-4o)
 /lunch – немедленно запросить идеи на обед
 /brief – немедленно запросить вечерний дайджест
-/tasks – вывести текущее расписание задач`
+/tasks – вывести текущее расписание задач
+/task [имя] – список задач или запуск выбранной`
 
 var StartupMessage = fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, CommandsList)
 
@@ -309,6 +310,30 @@ func FormatTasks(tasks []Task) string {
 	return strings.TrimSpace(b.String())
 }
 
+// FormatTaskNames returns a newline separated list of task names.
+func FormatTaskNames(tasks []Task) string {
+	names := []string{}
+	for _, t := range tasks {
+		if t.Name != "" {
+			names = append(names, t.Name)
+		}
+	}
+	if len(names) == 0 {
+		return "no tasks"
+	}
+	return strings.Join(names, "\n")
+}
+
+// FindTask returns the task with the given name, if any.
+func FindTask(tasks []Task, name string) (Task, bool) {
+	for _, t := range tasks {
+		if t.Name == name {
+			return t, true
+		}
+	}
+	return Task{}, false
+}
+
 // RegisterTaskCommands creates bot handlers for all named tasks.
 func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 	TasksMu.RLock()
@@ -492,6 +517,29 @@ func Run(cfg config.Config) error {
 		tasks := append([]Task(nil), LoadedTasks...)
 		TasksMu.RUnlock()
 		return c.Send(FormatTasks(tasks))
+	})
+
+	b.Handle("/task", func(c tb.Context) error {
+		name := strings.TrimSpace(c.Message().Payload)
+		TasksMu.RLock()
+		tasks := append([]Task(nil), LoadedTasks...)
+		TasksMu.RUnlock()
+		if name == "" {
+			return c.Send(FormatTaskNames(tasks))
+		}
+		t, ok := FindTask(tasks, name)
+		if !ok {
+			return c.Send("unknown task")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+
+		text, err := SystemCompletion(ctx, client, t.Prompt)
+		if err != nil {
+			log.Printf("openai error: %v", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(text)
 	})
 
 	b.Handle("/model", func(c tb.Context) error {
