@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -86,7 +87,16 @@ func userCompletion(ctx context.Context, client ChatCompleter, message string) (
 
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
 func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bot, chatID int64) {
-	if _, err := s.Every(1).Day().At("13:00").Do(func() {
+	lunchTime := os.Getenv("LUNCH_TIME")
+	if lunchTime == "" {
+		lunchTime = "13:00"
+	}
+	briefTime := os.Getenv("BRIEF_TIME")
+	if briefTime == "" {
+		briefTime = "20:00"
+	}
+
+	if _, err := s.Every(1).Day().At(lunchTime).Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
 		defer cancel()
 
@@ -102,7 +112,7 @@ func scheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, bot *tb.Bo
 		log.Printf("schedule error: %v", err)
 	}
 
-	if _, err := s.Every(1).Day().At("20:00").Do(func() {
+	if _, err := s.Every(1).Day().At(briefTime).Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), openAITimeout)
 		defer cancel()
 
