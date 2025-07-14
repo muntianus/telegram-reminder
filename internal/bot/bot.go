@@ -61,27 +61,32 @@ func envDefault(key, def string) string {
 	return def
 }
 
-// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
-// is provided, it falls back to the legacy LUNCH_TIME and BRIEF_TIME
-// environment variables.
-func LoadTasks() ([]Task, error) {
-	if fn := os.Getenv("TASKS_FILE"); fn != "" {
-		data, err := os.ReadFile(fn)
-		if err != nil {
+// readTasksFile loads tasks from a YAML or JSON file.
+func readTasksFile(fn string) ([]Task, error) {
+	data, err := os.ReadFile(fn)
+	if err != nil {
+		return nil, err
+	}
+	tasks := []Task{}
+	ext := strings.ToLower(filepath.Ext(fn))
+	if ext == ".yaml" || ext == ".yml" {
+		if err := yaml.Unmarshal(data, &tasks); err != nil {
 			return nil, err
 		}
-		tasks := []Task{}
-		ext := strings.ToLower(filepath.Ext(fn))
-		if ext == ".yaml" || ext == ".yml" {
-			if err := yaml.Unmarshal(data, &tasks); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := json.Unmarshal(data, &tasks); err != nil {
-				return nil, err
-			}
+	} else {
+		if err := json.Unmarshal(data, &tasks); err != nil {
+			return nil, err
 		}
-		return tasks, nil
+	}
+	return tasks, nil
+}
+
+// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
+// is provided, it falls back to tasks.yml or the legacy LUNCH_TIME and
+// BRIEF_TIME environment variables.
+func LoadTasks() ([]Task, error) {
+	if fn := os.Getenv("TASKS_FILE"); fn != "" {
+		return readTasksFile(fn)
 	}
 
 	if txt := os.Getenv("TASKS_JSON"); txt != "" {
@@ -90,6 +95,12 @@ func LoadTasks() ([]Task, error) {
 			return nil, err
 		}
 		return tasks, nil
+	}
+
+	for _, fn := range []string{"tasks.yml", "tasks.yaml"} {
+		if _, err := os.Stat(fn); err == nil {
+			return readTasksFile(fn)
+		}
 	}
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)

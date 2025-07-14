@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -17,6 +18,10 @@ func (f fakeTime) Unix(sec int64, nsec int64) time.Time { return time.Unix(sec, 
 func (f fakeTime) Sleep(d time.Duration)                { time.Sleep(d) }
 
 func TestScheduleDailyMessagesTimes(t *testing.T) {
+	cwd, _ := os.Getwd()
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	_ = os.Chdir(t.TempDir())
+
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	s := gocron.NewScheduler(loc)
 	s.CustomTime(fakeTime{onNow: func(l *time.Location) time.Time {
@@ -46,6 +51,9 @@ func TestScheduleDailyMessagesTimes(t *testing.T) {
 }
 
 func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
+	cwd, _ := os.Getwd()
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	_ = os.Chdir(t.TempDir())
 	t.Setenv("LUNCH_TIME", "10:15")
 	t.Setenv("BRIEF_TIME", "21:30")
 
