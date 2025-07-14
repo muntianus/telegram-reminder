@@ -23,6 +23,19 @@ The bot can be deployed on any always‑online environment such as Railway, Fly.
 * Lunch idea time (`LUNCH_TIME`, optional, defaults to `13:00`)
 * Brief message time (`BRIEF_TIME`, optional, defaults to `20:00`)
 
+## Adding the bot to channels and groups
+
+1. Invite the bot to the channel or group where it should post.
+2. Promote it so that it can send messages (administrator in channels).
+3. Send a test message in that chat and open:
+
+   ```
+   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+   ```
+
+   The JSON response includes a `chat.id` field – this is the numeric channel ID.
+4. Set the `CHAT_ID` environment variable to this value when starting the bot.
+
 ## Running locally
 
 Set the required environment variables and start the bot:
