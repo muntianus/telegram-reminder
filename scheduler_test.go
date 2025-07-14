@@ -23,7 +23,9 @@ func TestScheduleDailyMessagesTimes(t *testing.T) {
 		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
 	}})
 
-	bot.ScheduleDailyMessages(s, nil, nil, 0)
+	if err := bot.ScheduleDailyMessages(s, nil, nil, 0); err != nil {
+		t.Fatalf("schedule: %v", err)
+	}
 
 	s.StartAsync()
 	s.Stop()
@@ -55,7 +57,9 @@ func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
 		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
 	}})
 
-	bot.ScheduleDailyMessages(s, nil, nil, 0)
+	if err := bot.ScheduleDailyMessages(s, nil, nil, 0); err != nil {
+		t.Fatalf("schedule: %v", err)
+	}
 
 	s.StartAsync()
 	s.Stop()
@@ -74,5 +78,19 @@ func TestScheduleDailyMessagesCustomTimes(t *testing.T) {
 		if !ok {
 			t.Fatalf("time %s not scheduled", tstr)
 		}
+	}
+}
+
+func TestScheduleDailyMessagesInvalidTimes(t *testing.T) {
+	t.Setenv("LUNCH_TIME", "99:99")
+
+	loc, _ := time.LoadLocation("Europe/Moscow")
+	s := gocron.NewScheduler(loc)
+	s.CustomTime(fakeTime{onNow: func(l *time.Location) time.Time {
+		return time.Date(2024, 1, 1, 12, 0, 0, 0, l)
+	}})
+
+	if err := bot.ScheduleDailyMessages(s, nil, nil, 0); err == nil {
+		t.Fatal("expected error")
 	}
 }
