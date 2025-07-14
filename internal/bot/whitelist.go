@@ -8,14 +8,16 @@ import (
 	"sync"
 )
 
-var whitelistFile = envDefault("WHITELIST_FILE", "whitelist.json")
+// WhitelistFile is the path to the JSON file that stores chat IDs.
+// It can be overridden in tests.
+var WhitelistFile = envDefault("WHITELIST_FILE", "whitelist.json")
 var wlMu sync.Mutex
 
 func loadWhitelist() ([]int64, error) {
 	wlMu.Lock()
 	defer wlMu.Unlock()
 
-	data, err := os.ReadFile(whitelistFile)
+	data, err := os.ReadFile(WhitelistFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []int64{}, nil
@@ -40,7 +42,7 @@ func saveWhitelist(ids []int64) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(whitelistFile, data, 0644)
+	return os.WriteFile(WhitelistFile, data, 0644)
 }
 
 // LoadWhitelist returns the list of whitelisted chat IDs.
