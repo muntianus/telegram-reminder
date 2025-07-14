@@ -23,13 +23,17 @@ func Load() (Config, error) {
 	openaiKey := os.Getenv("OPENAI_API_KEY")
 	openaiModel := os.Getenv("OPENAI_MODEL")
 
-	if telegramToken == "" || chatIDStr == "" || openaiKey == "" {
+	if telegramToken == "" || openaiKey == "" {
 		return cfg, fmt.Errorf("missing required env vars")
 	}
 
-	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
-	if err != nil {
-		return cfg, fmt.Errorf("invalid CHAT_ID: %w", err)
+	var chatID int64
+	if chatIDStr != "" {
+		var err error
+		chatID, err = strconv.ParseInt(chatIDStr, 10, 64)
+		if err != nil {
+			return cfg, fmt.Errorf("invalid CHAT_ID: %w", err)
+		}
 	}
 
 	cfg = Config{
