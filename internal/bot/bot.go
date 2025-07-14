@@ -76,23 +76,33 @@ func envDefault(key, def string) string {
 }
 
 // readTasksFile loads tasks from a YAML or JSON file.
-func readTasksFile(fn string) ([]Task, error) {
+func readTasksFile(fn string) ([]Task, string, error) {
 	data, err := os.ReadFile(fn)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	tasks := []Task{}
 	ext := strings.ToLower(filepath.Ext(fn))
+	var tf struct {
+		BasePrompt string `json:"base_prompt" yaml:"base_prompt"`
+		Tasks      []Task `json:"tasks" yaml:"tasks"`
+	}
 	if ext == ".yaml" || ext == ".yml" {
+		if err := yaml.Unmarshal(data, &tf); err == nil && len(tf.Tasks) > 0 {
+			return tf.Tasks, tf.BasePrompt, nil
+		}
 		if err := yaml.Unmarshal(data, &tasks); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	} else {
+		if err := json.Unmarshal(data, &tf); err == nil && len(tf.Tasks) > 0 {
+			return tf.Tasks, tf.BasePrompt, nil
+		}
 		if err := json.Unmarshal(data, &tasks); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	}
-	return tasks, nil
+	return tasks, "", nil
 }
 
 // LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
@@ -100,7 +110,14 @@ func readTasksFile(fn string) ([]Task, error) {
 // BRIEF_TIME environment variables.
 func LoadTasks() ([]Task, error) {
 	if fn := os.Getenv("TASKS_FILE"); fn != "" {
-		return readTasksFile(fn)
+		tasks, bp, err := readTasksFile(fn)
+		if err != nil {
+			return nil, err
+		}
+		if bp != "" {
+			BasePrompt = bp
+		}
+		return tasks, nil
 	}
 
 	if txt := os.Getenv("TASKS_JSON"); txt != "" {
@@ -113,7 +130,14 @@ func LoadTasks() ([]Task, error) {
 
 	for _, fn := range []string{"tasks.yml", "tasks.yaml"} {
 		if _, err := os.Stat(fn); err == nil {
-			return readTasksFile(fn)
+			tasks, bp, err := readTasksFile(fn)
+			if err != nil {
+				return nil, err
+			}
+			if bp != "" {
+				BasePrompt = bp
+			}
+			return tasks, nil
 		}
 	}
 
@@ -138,6 +162,7 @@ type MessageSender interface {
 var (
 	CurrentModel = "gpt-4o"
 	ModelMu      sync.RWMutex
+	BasePrompt   string
 	//nolint:staticcheck // list includes deprecated model constants for completeness
 	SupportedModels = []string{
 		openai.O1Mini,
@@ -247,6 +272,20 @@ func UserCompletion(ctx context.Context, client ChatCompleter, message string) (
 	return ChatCompletion(ctx, client, msgs)
 }
 
+// applyTemplate replaces placeholders in the prompt with runtime values.
+func applyTemplate(prompt string) string {
+	vars := map[string]string{
+		"base_prompt":  BasePrompt,
+		"date":         time.Now().Format("2006-01-02"),
+		"exchange_api": os.Getenv("EXCHANGE_API"),
+		"chart_path":   os.Getenv("CHART_PATH"),
+	}
+	for k, v := range vars {
+		prompt = strings.ReplaceAll(prompt, "{"+k+"}", v)
+	}
+	return prompt
+}
+
 // FormatTasks returns a text summary of tasks with their time or cron expression.
 func FormatTasks(tasks []Task) string {
 	if len(tasks) == 0 {
@@ -279,7 +318,7 @@ func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 		if t.Name == "" {
 			continue
 		}
-		prompt := t.Prompt
+		prompt := applyTemplate(t.Prompt)
 		cmd := "/" + t.Name
 		b.Handle(cmd, func(c tb.Context) error {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
@@ -308,7 +347,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 	TasksMu.Unlock()
 
 	for _, t := range tasks {
-		prompt := t.Prompt
+		prompt := applyTemplate(t.Prompt)
 		job := func() {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
