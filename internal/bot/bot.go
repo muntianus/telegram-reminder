@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -19,6 +21,174 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
 )
+
+// WebSearchResult represents a single search result
+type WebSearchResult struct {
+	Title   string `json:"title"`
+	URL     string `json:"url"`
+	Snippet string `json:"snippet"`
+}
+
+// WebSearch performs a web search using DuckDuckGo API
+func WebSearch(query string) ([]WebSearchResult, error) {
+	// Using DuckDuckGo Instant Answer API (free, no API key required)
+	baseURL := "https://api.duckduckgo.com/"
+	params := url.Values{}
+	params.Add("q", query)
+	params.Add("format", "json")
+	params.Add("no_html", "1")
+	params.Add("skip_disambig", "1")
+
+	resp, err := http.Get(baseURL + "?" + params.Encode())
+	if err != nil {
+		return nil, fmt.Errorf("web search request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result struct {
+		Abstract      string `json:"Abstract"`
+		AbstractURL   string `json:"AbstractURL"`
+		AbstractText  string `json:"AbstractText"`
+		RelatedTopics []struct {
+			Text     string `json:"Text"`
+			FirstURL string `json:"FirstURL"`
+		} `json:"RelatedTopics"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse search results: %w", err)
+	}
+
+	var results []WebSearchResult
+
+	// Add main result if available
+	if result.Abstract != "" {
+		results = append(results, WebSearchResult{
+			Title:   "Main Result",
+			URL:     result.AbstractURL,
+			Snippet: result.Abstract,
+		})
+	}
+
+	// Add related topics
+	for i, topic := range result.RelatedTopics {
+		if i >= 5 { // Limit to 5 results
+			break
+		}
+		results = append(results, WebSearchResult{
+			Title:   topic.Text,
+			URL:     topic.FirstURL,
+			Snippet: topic.Text,
+		})
+	}
+
+	return results, nil
+}
+
+// EnhancedSystemCompletion performs a web search and then generates a response
+func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt string, model string) (string, error) {
+	// Extract search queries from prompt
+	searchQueries := extractSearchQueries(prompt)
+
+	var webContext string
+	if len(searchQueries) > 0 {
+		webContext = "🔍 АКТУАЛЬНАЯ ИНФОРМАЦИЯ ИЗ ИНТЕРНЕТА:\n\n"
+
+		for _, query := range searchQueries {
+			results, err := WebSearch(query)
+			if err != nil {
+				logger.L.Error("web search failed", "query", query, "err", err)
+				continue
+			}
+
+			webContext += fmt.Sprintf("📊 Поиск: %s\n", query)
+			for i, result := range results {
+				if i >= 3 { // Limit to 3 results per query
+					break
+				}
+				webContext += fmt.Sprintf("• %s\n  %s\n  Источник: %s\n\n",
+					result.Title, result.Snippet, result.URL)
+			}
+		}
+	}
+
+	// Combine web context with original prompt
+	enhancedPrompt := prompt
+	if webContext != "" {
+		enhancedPrompt = webContext + "\n" + prompt
+	}
+
+	return SystemCompletion(ctx, client, enhancedPrompt, model)
+}
+
+// extractSearchQueries extracts search queries from prompt
+func extractSearchQueries(prompt string) []string {
+	var queries []string
+
+	// Extract queries based on prompt type
+	if strings.Contains(prompt, "криптовалют") || strings.Contains(prompt, "crypto") {
+		queries = append(queries,
+			"bitcoin price today",
+			"cryptocurrency market news today",
+			"crypto market cap today",
+			"defi protocols TVL today")
+	}
+
+	if strings.Contains(prompt, "технолог") || strings.Contains(prompt, "tech") {
+		queries = append(queries,
+			"AI news today",
+			"startup funding today",
+			"tech company news today",
+			"product hunt trending today")
+	}
+
+	if strings.Contains(prompt, "недвижимость") || strings.Contains(prompt, "real estate") {
+		queries = append(queries,
+			"Москва недвижимость цены сегодня",
+			"Подмосковье земельные участки",
+			"ГИС-Торги новые лоты",
+			"недвижимость инвестиции сегодня")
+	}
+
+	if strings.Contains(prompt, "бизнес") || strings.Contains(prompt, "business") {
+		queries = append(queries,
+			"business news today",
+			"startup funding today",
+			"IPO news today",
+			"venture capital news today")
+	}
+
+	if strings.Contains(prompt, "инвестиции") || strings.Contains(prompt, "investment") {
+		queries = append(queries,
+			"stock market today",
+			"investment news today",
+			"market indices today",
+			"financial news today")
+	}
+
+	if strings.Contains(prompt, "стартап") || strings.Contains(prompt, "startup") {
+		queries = append(queries,
+			"startup news today",
+			"startup funding today",
+			"new startups today",
+			"venture capital today")
+	}
+
+	if strings.Contains(prompt, "глобаль") || strings.Contains(prompt, "global") {
+		queries = append(queries,
+			"world news today",
+			"global economy today",
+			"international news today",
+			"geopolitical news today")
+	}
+
+	return queries
+}
 
 // Prompt templates
 const (
@@ -139,74 +309,43 @@ var (
 	CurrentModel = "o3"
 	ModelMu      sync.RWMutex
 	BasePrompt   string
-	//nolint:staticcheck // list includes deprecated model constants for completeness
+	// SupportedModels contains all OpenAI model identifiers that support web search and tools
 	SupportedModels = []string{
-		openai.O1Mini,
-		openai.O1Mini20240912,
-		openai.O1Preview,
-		openai.O1Preview20240912,
-		openai.O1,
-		openai.O120241217,
-		openai.O3,
-		openai.O320250416,
-		openai.O3Mini,
-		openai.O3Mini20250131,
-		openai.O4Mini,
-		openai.O4Mini20250416,
-		openai.GPT432K0613,
-		openai.GPT432K0314,
-		openai.GPT432K,
-		openai.GPT40613,
-		openai.GPT40314,
-		openai.GPT4o,
-		openai.GPT4o20240513,
-		openai.GPT4o20240806,
-		openai.GPT4o20241120,
-		openai.GPT4oLatest,
-		openai.GPT4oMini,
-		openai.GPT4oMini20240718,
-		openai.GPT4Turbo,
-		openai.GPT4Turbo20240409,
-		openai.GPT4Turbo0125,
-		openai.GPT4Turbo1106,
-		openai.GPT4TurboPreview,
-		openai.GPT4VisionPreview,
-		openai.GPT4,
-		openai.GPT4Dot1,
-		openai.GPT4Dot120250414,
-		openai.GPT4Dot1Mini,
-		openai.GPT4Dot1Mini20250414,
-		openai.GPT4Dot1Nano,
-		openai.GPT4Dot1Nano20250414,
-		openai.GPT4Dot5Preview,
-		openai.GPT4Dot5Preview20250227,
-		openai.GPT3Dot5Turbo0125,
-		openai.GPT3Dot5Turbo1106,
-		openai.GPT3Dot5Turbo0613,
-		openai.GPT3Dot5Turbo0301,
-		openai.GPT3Dot5Turbo16K,
-		openai.GPT3Dot5Turbo16K0613,
-		openai.GPT3Dot5Turbo,
-		openai.GPT3Dot5TurboInstruct,
-		openai.GPT3TextDavinci003,
-		openai.GPT3TextDavinci002,
-		openai.GPT3TextCurie001,
-		openai.GPT3TextBabbage001,
-		openai.GPT3TextAda001,
-		openai.GPT3TextDavinci001,
-		openai.GPT3DavinciInstructBeta,
-		openai.GPT3Davinci,
-		openai.GPT3Davinci002,
-		openai.GPT3CurieInstructBeta,
-		openai.GPT3Curie,
-		openai.GPT3Curie002,
-		openai.GPT3Ada,
-		openai.GPT3Ada002,
-		openai.GPT3Babbage,
-		openai.GPT3Babbage002,
-		openai.CodexCodeDavinci002,
-		openai.CodexCodeCushman001,
-		openai.CodexCodeDavinci001,
+		// Models with web search and tools support
+		"gpt-4o",
+		"gpt-4o-2024-05-13",
+		"gpt-4o-2024-08-06",
+		"gpt-4o-2024-11-20",
+		"chatgpt-4o-latest",
+		"gpt-4o-mini",
+		"gpt-4o-mini-2024-07-18",
+		"gpt-4-turbo",
+		"gpt-4-turbo-2024-04-09",
+		"gpt-4-0125-preview",
+		"gpt-4-1106-preview",
+		"gpt-4-turbo-preview",
+		"gpt-4-vision-preview",
+		"gpt-4",
+		"gpt-4.1",
+		"gpt-4.1-2025-04-14",
+		"gpt-4.1-mini",
+		"gpt-4.1-mini-2025-04-14",
+		"gpt-4.1-nano",
+		"gpt-4.1-nano-2025-04-14",
+		"gpt-4.5-preview",
+		"gpt-4.5-preview-2025-02-27",
+		"o1-mini",
+		"o1-mini-2024-09-12",
+		"o1-preview",
+		"o1-preview-2024-09-12",
+		"o1",
+		"o1-2024-12-17",
+		"o3",
+		"o3-2025-04-16",
+		"o3-mini",
+		"o3-mini-2025-01-31",
+		"o4-mini",
+		"o4-mini-2025-04-16",
 	}
 )
 
@@ -522,7 +661,7 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(CryptoDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "crypto", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -536,7 +675,7 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(TechDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "tech", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -550,7 +689,7 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(RealEstateDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "realestate", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -564,7 +703,7 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(BusinessDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "business", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -578,7 +717,7 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(InvestmentDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "investment", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -592,7 +731,7 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(StartupDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "startup", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -606,7 +745,7 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(GlobalDigestPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "global", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
