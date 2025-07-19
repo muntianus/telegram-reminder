@@ -143,31 +143,31 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 	return SystemCompletion(ctx, client, enhancedPrompt, model)
 }
 
-// extractSearchQueries extracts search queries from prompt with more specific queries
+// extractSearchQueries extracts search queries from prompt with more specific queries for today's news
 func extractSearchQueries(prompt string) []string {
 	var queries []string
 
 	// Extract queries based on prompt type with more specific searches for today's news
 	if strings.Contains(prompt, "криптовалют") || strings.Contains(prompt, "crypto") {
 		queries = append(queries,
-			"bitcoin news today 2024",
-			"cryptocurrency news today latest",
+			"bitcoin news today",
+			"cryptocurrency news today",
 			"crypto market news today",
-			"defi news today 2024",
+			"defi news today",
 			"ethereum news today",
-			"altcoin news today latest",
+			"altcoin news today",
 			"crypto regulation news today",
 			"crypto exchange news today")
 	}
 
 	if strings.Contains(prompt, "технолог") || strings.Contains(prompt, "tech") {
 		queries = append(queries,
-			"AI news today 2024",
-			"startup news today latest",
+			"AI news today",
+			"startup news today",
 			"tech company news today",
 			"product hunt today",
 			"new AI models today",
-			"tech IPO news today 2024",
+			"tech IPO news today",
 			"artificial intelligence news today",
 			"tech funding news today",
 			"software news today",
@@ -190,12 +190,12 @@ func extractSearchQueries(prompt string) []string {
 
 	if strings.Contains(prompt, "бизнес") || strings.Contains(prompt, "business") {
 		queries = append(queries,
-			"business news today latest",
-			"startup news today 2024",
-			"IPO news today 2024",
+			"business news today",
+			"startup news today",
+			"IPO news today",
 			"venture capital news today",
 			"company earnings news today",
-			"mergers acquisitions news today 2024",
+			"mergers acquisitions news today",
 			"business trends today",
 			"entrepreneurship news today",
 			"business technology news today",
@@ -205,9 +205,9 @@ func extractSearchQueries(prompt string) []string {
 	if strings.Contains(prompt, "инвестиции") || strings.Contains(prompt, "investment") {
 		queries = append(queries,
 			"stock market news today",
-			"investment news today latest",
+			"investment news today",
 			"market analysis today",
-			"financial news today 2024",
+			"financial news today",
 			"stock prices news today",
 			"market trends today",
 			"investment opportunities today",
@@ -218,12 +218,12 @@ func extractSearchQueries(prompt string) []string {
 
 	if strings.Contains(prompt, "стартап") || strings.Contains(prompt, "startup") {
 		queries = append(queries,
-			"startup news today latest",
-			"startup funding news today 2024",
+			"startup news today",
+			"startup funding news today",
 			"new startups launched today",
-			"venture capital news today 2024",
+			"venture capital news today",
 			"startup acquisitions news today",
-			"startup IPO news today 2024",
+			"startup IPO news today",
 			"startup ecosystem news today",
 			"startup technology news today",
 			"startup trends today",
@@ -232,8 +232,8 @@ func extractSearchQueries(prompt string) []string {
 
 	if strings.Contains(prompt, "глобаль") || strings.Contains(prompt, "global") {
 		queries = append(queries,
-			"world news today latest",
-			"global economy news today 2024",
+			"world news today",
+			"global economy news today",
 			"international news today",
 			"geopolitical news today",
 			"world markets news today",
