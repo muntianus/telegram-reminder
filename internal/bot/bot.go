@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -21,239 +20,10 @@ import (
 	tb "gopkg.in/telebot.v3"
 )
 
-// WebSearchResult represents a single search result
-type WebSearchResult struct {
-	Title   string `json:"title"`
-	URL     string `json:"url"`
-	Snippet string `json:"snippet"`
-}
-
-// WebSearch performs a web search using DuckDuckGo API
-func WebSearch(query string) ([]WebSearchResult, error) {
-	baseURL := "https://api.duckduckgo.com/"
-	params := url.Values{}
-	params.Add("q", query)
-	params.Add("format", "json")
-	params.Add("no_html", "1")
-	params.Add("skip_disambig", "1")
-
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 5 * time.Second, // 5 second timeout for web search
-	}
-
-	resp, err := client.Get(baseURL + "?" + params.Encode())
-	if err != nil {
-		return nil, fmt.Errorf("web search request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("web search failed with status: %d", resp.StatusCode)
-	}
-
-	var result struct {
-		AbstractText   string `json:"AbstractText"`
-		AbstractURL    string `json:"AbstractURL"`
-		AbstractSource string `json:"AbstractSource"`
-		Results        []struct {
-			Title   string `json:"Title"`
-			URL     string `json:"FirstURL"`
-			Snippet string `json:"Text"`
-		} `json:"Results"`
-		RelatedTopics []struct {
-			Text string `json:"Text"`
-			URL  string `json:"FirstURL"`
-		} `json:"RelatedTopics"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	var results []WebSearchResult
-
-	// Add abstract if available
-	if result.AbstractText != "" && result.AbstractURL != "" {
-		results = append(results, WebSearchResult{
-			Title:   result.AbstractSource,
-			URL:     result.AbstractURL,
-			Snippet: result.AbstractText,
-		})
-	}
-
-	// Add specific results
-	for _, r := range result.Results {
-		if r.Title != "" && r.URL != "" {
-			results = append(results, WebSearchResult{
-				Title:   r.Title,
-				URL:     r.URL,
-				Snippet: r.Snippet,
-			})
-		}
-	}
-
-	// Add related topics if no specific results
-	if len(results) == 0 && len(result.RelatedTopics) > 0 {
-		for _, rt := range result.RelatedTopics {
-			if rt.Text != "" && rt.URL != "" {
-				results = append(results, WebSearchResult{
-					Title:   rt.Text,
-					URL:     rt.URL,
-					Snippet: rt.Text,
-				})
-			}
-		}
-	}
-
-	return results, nil
-}
-
-// EnhancedSystemCompletion performs a web search and then generates a response
+// EnhancedSystemCompletion combines web search results with OpenAI completions
 func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt string, model string) (string, error) {
-	// Extract search queries from prompt
-	searchQueries := extractSearchQueries(prompt)
-
-	var webContext string
-	var webSearchAvailable bool = true
-
-	if len(searchQueries) > 0 {
-		webContext = "🔍 АКТУАЛЬНАЯ ИНФОРМАЦИЯ ИЗ ИНТЕРНЕТА:\n\n"
-
-		for _, query := range searchQueries {
-			results, err := WebSearch(query)
-			if err != nil {
-				logger.L.Error("web search failed", "query", query, "err", err)
-				webSearchAvailable = false
-				continue
-			}
-
-			webContext += fmt.Sprintf("📊 Поиск: %s\n", query)
-			for i, result := range results {
-				if i >= 3 { // Limit to 3 results per query
-					break
-				}
-				// Format with more specific source information
-				webContext += fmt.Sprintf("• %s\n  %s\n  Источник: %s\n\n",
-					result.Title, result.Snippet, result.URL)
-			}
-		}
-	}
-
-	// If web search is not available, modify the prompt to work without it
-	enhancedPrompt := prompt
-	if webContext != "" && webSearchAvailable {
-		enhancedPrompt = webContext + "\n" + prompt
-	} else if !webSearchAvailable {
-		// Add fallback instruction when web search is down
-		enhancedPrompt = "⚠️ ВЕБ-ПОИСК ВРЕМЕННО НЕДОСТУПЕН\n\n" + prompt + "\n\n💡 Используй свои знания для генерации актуального контента."
-	}
-
-	return SystemCompletion(ctx, client, enhancedPrompt, model)
-}
-
-// extractSearchQueries extracts search queries from prompt with more specific queries for today's news
-func extractSearchQueries(prompt string) []string {
-	var queries []string
-
-	// Extract queries based on prompt type with more specific searches for today's news
-	if strings.Contains(prompt, "криптовалют") || strings.Contains(prompt, "crypto") {
-		queries = append(queries,
-			"bitcoin news today",
-			"cryptocurrency news today",
-			"crypto market news today",
-			"defi news today",
-			"ethereum news today",
-			"altcoin news today",
-			"crypto regulation news today",
-			"crypto exchange news today")
-	}
-
-	if strings.Contains(prompt, "технолог") || strings.Contains(prompt, "tech") {
-		queries = append(queries,
-			"AI news today",
-			"startup news today",
-			"tech company news today",
-			"product hunt today",
-			"new AI models today",
-			"tech IPO news today",
-			"artificial intelligence news today",
-			"tech funding news today",
-			"software news today",
-			"tech acquisitions today")
-	}
-
-	if strings.Contains(prompt, "недвижимость") || strings.Contains(prompt, "real estate") {
-		queries = append(queries,
-			"Москва недвижимость новости сегодня",
-			"Подмосковье недвижимость новости сегодня",
-			"ГИС-Торги новости сегодня",
-			"недвижимость новости Москва сегодня",
-			"цены на недвижимость новости сегодня",
-			"земельные участки новости сегодня",
-			"новостройки Москва новости сегодня",
-			"коммерческая недвижимость новости сегодня",
-			"ипотека новости сегодня",
-			"недвижимость аналитика сегодня")
-	}
-
-	if strings.Contains(prompt, "бизнес") || strings.Contains(prompt, "business") {
-		queries = append(queries,
-			"business news today",
-			"startup news today",
-			"IPO news today",
-			"venture capital news today",
-			"company earnings news today",
-			"mergers acquisitions news today",
-			"business trends today",
-			"entrepreneurship news today",
-			"business technology news today",
-			"market news today")
-	}
-
-	if strings.Contains(prompt, "инвестиции") || strings.Contains(prompt, "investment") {
-		queries = append(queries,
-			"stock market news today",
-			"investment news today",
-			"market analysis today",
-			"financial news today",
-			"stock prices news today",
-			"market trends today",
-			"investment opportunities today",
-			"portfolio news today",
-			"trading news today",
-			"wealth management news today")
-	}
-
-	if strings.Contains(prompt, "стартап") || strings.Contains(prompt, "startup") {
-		queries = append(queries,
-			"startup news today",
-			"startup funding news today",
-			"new startups launched today",
-			"venture capital news today",
-			"startup acquisitions news today",
-			"startup IPO news today",
-			"startup ecosystem news today",
-			"startup technology news today",
-			"startup trends today",
-			"startup success stories today")
-	}
-
-	if strings.Contains(prompt, "глобаль") || strings.Contains(prompt, "global") {
-		queries = append(queries,
-			"world news today",
-			"global economy news today",
-			"international news today",
-			"geopolitical news today",
-			"world markets news today",
-			"global trade news today",
-			"world politics news today",
-			"international relations news today",
-			"global business news today",
-			"world events today")
-	}
-
-	return queries
+	// Просто используем обычный SystemCompletion без веб-поиска
+	return SystemCompletion(ctx, client, prompt, model)
 }
 
 // Prompt templates
@@ -261,23 +31,21 @@ const (
 	DailyBriefPrompt = `
 Ты — Telegram-бот для ежедневного дайджеста. Говоришь кратко, дерзко, панибратски.
 
-📅 ВАЖНО: Анализируй информацию ТОЛЬКО за сегодняшний день.
+📅 ВАЖНО: Анализируй информацию на основе своих знаний о текущих трендах и событиях.
 
 Заполни блоки:
 ⚡ Микродействие (одно простое действие на сегодня)
-🧠 Тема дня (мини‑инсайт/мысль на основе сегодняшних событий)
-💰 Что залутать (актив/идея на основе сегодняшних трендов)
+🧠 Тема дня (мини‑инсайт/мысль на основе текущих трендов)
+💰 Что залутать (актив/идея на основе текущих трендов)
 🏞️ Земля на присмотр (лоты в южном Подмосковье: Бутово, Щербинка, Подольск, Воскресенск)
-🪙 Альт дня (актуальная монета на основе сегодняшних движений, линк CoinGecko)
-🚀 Пушка с ProductHunt (сегодняшние топовые проекты)
+🪙 Альт дня (актуальная монета на основе текущих движений, линк CoinGecko)
+🚀 Пушка с ProductHunt (топовые проекты)
 
-🔍 ИНТЕРНЕТ-АНАЛИЗ: Используй СВЕЖУЮ ИНФОРМАЦИЮ ИЗ СТАТЕЙ ЗА ПОСЛЕДНИЕ 24 ЧАСА по темам:
+💡 АНАЛИЗ: Используй свои знания по темам:
 - Криптовалюты и DeFi
 - Технологии и стартапы
 - Недвижимость и инвестиции
 - Бизнес-тренды
-
-ВАЖНО: Все ссылки должны вести на СВЕЖИЕ СТАТЬИ ЗА ПОСЛЕДНИЕ 24 ЧАСА, а не на старые данные.
 
 Форматируй одним сообщением для Telegram, без лишней воды.
 `
