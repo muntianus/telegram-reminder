@@ -6,6 +6,15 @@ import (
 	"strconv"
 )
 
+// Environment variable names
+const (
+	EnvTelegramToken = "TELEGRAM_TOKEN"
+	EnvChatID        = "CHAT_ID"
+	EnvOpenAIKey     = "OPENAI_API_KEY"
+	EnvOpenAIModel   = "OPENAI_MODEL"
+	EnvBlockchainAPI = "BLOCKCHAIN_API"
+)
+
 const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
 
 // Config holds environment configuration values.
@@ -21,11 +30,11 @@ type Config struct {
 func Load() (Config, error) {
 	var cfg Config
 
-	telegramToken := os.Getenv("TELEGRAM_TOKEN")
-	chatIDStr := os.Getenv("CHAT_ID")
-	openaiKey := os.Getenv("OPENAI_API_KEY")
-	openaiModel := os.Getenv("OPENAI_MODEL")
-	blockchainAPI := os.Getenv("BLOCKCHAIN_API")
+	telegramToken := os.Getenv(EnvTelegramToken)
+	chatIDStr := os.Getenv(EnvChatID)
+	openaiKey := os.Getenv(EnvOpenAIKey)
+	openaiModel := os.Getenv(EnvOpenAIModel)
+	blockchainAPI := os.Getenv(EnvBlockchainAPI)
 
 	if telegramToken == "" || openaiKey == "" {
 		return cfg, fmt.Errorf("missing required env vars")
