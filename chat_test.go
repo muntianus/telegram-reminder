@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	botpkg "telegram-reminder/internal/bot"
+
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
-	botpkg "telegram-reminder/internal/bot"
 )
 
 // fakeChatClient implements bot.ChatCompleter and returns a fixed reply.
@@ -48,7 +49,7 @@ func TestChatCommand(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
-		text, err := botpkg.UserCompletion(ctx, client, q)
+		text, err := botpkg.UserCompletion(ctx, client, "test message", "gpt-4o")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

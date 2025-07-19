@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	botpkg "telegram-reminder/internal/bot"
+
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
-	botpkg "telegram-reminder/internal/bot"
 )
 
 type fakeClient struct{ text string }
@@ -57,7 +58,7 @@ func TestTaskCommand(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
-		text, err := botpkg.SystemCompletion(ctx, client, tsk.Prompt)
+		text, err := botpkg.SystemCompletion(ctx, client, tsk.Prompt, "gpt-4o")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

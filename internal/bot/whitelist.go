@@ -13,6 +13,13 @@ import (
 var WhitelistFile = envDefault("WHITELIST_FILE", "whitelist.json")
 var wlMu sync.Mutex
 
+// loadWhitelist reads the whitelist file and returns the list of chat IDs.
+// This is an internal function that handles the actual file I/O operations.
+// Returns an empty slice if the file doesn't exist.
+//
+// Returns:
+//   - []int64: Array of whitelisted chat IDs
+//   - error: Any error that occurred during file reading or parsing
 func loadWhitelist() ([]int64, error) {
 	wlMu.Lock()
 	defer wlMu.Unlock()
@@ -34,6 +41,14 @@ func loadWhitelist() ([]int64, error) {
 	return ids, nil
 }
 
+// saveWhitelist writes the list of chat IDs to the whitelist file.
+// This is an internal function that handles the actual file I/O operations.
+//
+// Parameters:
+//   - ids: Array of chat IDs to save
+//
+// Returns:
+//   - error: Any error that occurred during file writing
 func saveWhitelist(ids []int64) error {
 	wlMu.Lock()
 	defer wlMu.Unlock()
@@ -46,11 +61,23 @@ func saveWhitelist(ids []int64) error {
 }
 
 // LoadWhitelist returns the list of whitelisted chat IDs.
+// This is the public interface for reading the whitelist.
+//
+// Returns:
+//   - []int64: Array of whitelisted chat IDs
+//   - error: Any error that occurred during loading
 func LoadWhitelist() ([]int64, error) {
 	return loadWhitelist()
 }
 
 // AddIDToWhitelist stores the chat ID if it is not already present.
+// Duplicate IDs are ignored silently.
+//
+// Parameters:
+//   - id: Chat ID to add to the whitelist
+//
+// Returns:
+//   - error: Any error that occurred during the operation
 func AddIDToWhitelist(id int64) error {
 	ids, err := loadWhitelist()
 	if err != nil {
@@ -66,6 +93,13 @@ func AddIDToWhitelist(id int64) error {
 }
 
 // RemoveIDFromWhitelist removes the chat ID from the list.
+// If the ID is not present, the operation succeeds silently.
+//
+// Parameters:
+//   - id: Chat ID to remove from the whitelist
+//
+// Returns:
+//   - error: Any error that occurred during the operation
 func RemoveIDFromWhitelist(id int64) error {
 	ids, err := loadWhitelist()
 	if err != nil {
@@ -81,6 +115,13 @@ func RemoveIDFromWhitelist(id int64) error {
 }
 
 // FormatWhitelist returns the IDs as a newline separated string.
+// Returns an empty string if the list is empty.
+//
+// Parameters:
+//   - ids: Array of chat IDs to format
+//
+// Returns:
+//   - string: Newline-separated list of chat IDs
 func FormatWhitelist(ids []int64) string {
 	if len(ids) == 0 {
 		return ""

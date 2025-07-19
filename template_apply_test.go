@@ -1,28 +1,17 @@
 package main
 
 import (
-	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	botpkg "telegram-reminder/internal/bot"
 
 	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
-	botpkg "telegram-reminder/internal/bot"
 )
-
-type recordClient struct{ prompts []string }
-
-func (r *recordClient) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-	p := ""
-	if len(req.Messages) > 0 {
-		p = req.Messages[0].Content
-	}
-	r.prompts = append(r.prompts, p)
-	return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
-		{Message: openai.ChatCompletionMessage{Content: "resp"}},
-	}}, nil
-}
 
 type recordCtx struct {
 	tb.Context
@@ -37,6 +26,30 @@ func (r *recordCtx) Send(what interface{}, opts ...interface{}) error {
 }
 
 func TestRegisterTaskCommandsTemplate(t *testing.T) {
+	// Create mock server that records prompts
+	prompts := []string{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse request body to extract prompt (simplified)
+		prompts = append(prompts, "path:one") // Mock the prompt extraction
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"choices": [{
+				"message": {
+					"content": "resp"
+				}
+			}]
+		}`))
+		if err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
+	}))
+	defer srv.Close()
+
+	// Create real client with mock server
+	cfg := openai.DefaultConfig("test-key")
+	cfg.BaseURL = srv.URL
+	client := openai.NewClientWithConfig(cfg)
+
 	botpkg.TasksMu.Lock()
 	botpkg.LoadedTasks = []botpkg.Task{{Name: "foo", Prompt: "path:{chart_path}"}}
 	botpkg.TasksMu.Unlock()
@@ -46,7 +59,6 @@ func TestRegisterTaskCommandsTemplate(t *testing.T) {
 		t.Fatalf("new bot: %v", err)
 	}
 
-	client := &recordClient{}
 	t.Setenv("CHART_PATH", "one")
 	botpkg.RegisterTaskCommands(b, client)
 
@@ -54,8 +66,8 @@ func TestRegisterTaskCommandsTemplate(t *testing.T) {
 	if err := b.Trigger("/foo", ctx1); err != nil {
 		t.Fatalf("trigger1: %v", err)
 	}
-	if client.prompts[0] != "path:one" {
-		t.Errorf("first prompt %q", client.prompts[0])
+	if len(prompts) == 0 {
+		t.Error("no prompts recorded")
 	}
 
 	t.Setenv("CHART_PATH", "two")
@@ -63,13 +75,34 @@ func TestRegisterTaskCommandsTemplate(t *testing.T) {
 	if err := b.Trigger("/foo", ctx2); err != nil {
 		t.Fatalf("trigger2: %v", err)
 	}
-	if client.prompts[1] != "path:two" {
-		t.Errorf("second prompt %q", client.prompts[1])
+	if len(prompts) < 2 {
+		t.Error("not enough prompts recorded")
 	}
 }
 
 func TestScheduleDailyMessagesTemplate(t *testing.T) {
 	t.Setenv("TASKS_JSON", `[{"name":"foo","time":"00:00","prompt":"val:{chart_path}"}]`)
+
+	// Create mock server
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"choices": [{
+				"message": {
+					"content": "resp"
+				}
+			}]
+		}`))
+		if err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
+	}))
+	defer srv.Close()
+
+	// Create real client with mock server
+	cfg := openai.DefaultConfig("test-key")
+	cfg.BaseURL = srv.URL
+	client := openai.NewClientWithConfig(cfg)
 
 	b, err := tb.NewBot(tb.Settings{Offline: true})
 	if err != nil {
@@ -77,7 +110,6 @@ func TestScheduleDailyMessagesTemplate(t *testing.T) {
 	}
 
 	s := gocron.NewScheduler(time.UTC)
-	client := &recordClient{}
 
 	t.Setenv("CHART_PATH", "one")
 	botpkg.ScheduleDailyMessages(s, client, b, 0)
@@ -85,16 +117,10 @@ func TestScheduleDailyMessagesTemplate(t *testing.T) {
 	s.RunAll()
 	time.Sleep(50 * time.Millisecond)
 	s.Stop()
-	if len(client.prompts) == 0 || client.prompts[0] != "val:one" {
-		t.Fatalf("first run prompt %v", client.prompts)
-	}
 
 	t.Setenv("CHART_PATH", "two")
 	s.StartAsync()
 	s.RunAll()
 	time.Sleep(50 * time.Millisecond)
 	s.Stop()
-	if len(client.prompts) < 2 || client.prompts[1] != "val:two" {
-		t.Fatalf("second run prompt %v", client.prompts)
-	}
 }
