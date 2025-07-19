@@ -58,6 +58,11 @@ func WebSearch(query string) ([]WebSearchResult, error) {
 			Text     string `json:"Text"`
 			FirstURL string `json:"FirstURL"`
 		} `json:"RelatedTopics"`
+		Results []struct {
+			Title string `json:"Title"`
+			URL   string `json:"URL"`
+			Text  string `json:"Text"`
+		} `json:"Results"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -75,16 +80,27 @@ func WebSearch(query string) ([]WebSearchResult, error) {
 		})
 	}
 
-	// Add related topics
-	for i, topic := range result.RelatedTopics {
-		if i >= 5 { // Limit to 5 results
-			break
-		}
+	// Add specific results
+	for _, res := range result.Results {
 		results = append(results, WebSearchResult{
-			Title:   topic.Text,
-			URL:     topic.FirstURL,
-			Snippet: topic.Text,
+			Title:   res.Title,
+			URL:     res.URL,
+			Snippet: res.Text,
 		})
+	}
+
+	// Add related topics if no specific results
+	if len(result.Results) == 0 {
+		for i, topic := range result.RelatedTopics {
+			if i >= 5 { // Limit to 5 results
+				break
+			}
+			results = append(results, WebSearchResult{
+				Title:   topic.Text,
+				URL:     topic.FirstURL,
+				Snippet: topic.Text,
+			})
+		}
 	}
 
 	return results, nil
@@ -111,6 +127,7 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 				if i >= 3 { // Limit to 3 results per query
 					break
 				}
+				// Format with more specific source information
 				webContext += fmt.Sprintf("• %s\n  %s\n  Источник: %s\n\n",
 					result.Title, result.Snippet, result.URL)
 			}
@@ -126,65 +143,81 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 	return SystemCompletion(ctx, client, enhancedPrompt, model)
 }
 
-// extractSearchQueries extracts search queries from prompt
+// extractSearchQueries extracts search queries from prompt with more specific queries
 func extractSearchQueries(prompt string) []string {
 	var queries []string
 
-	// Extract queries based on prompt type
+	// Extract queries based on prompt type with more specific searches
 	if strings.Contains(prompt, "криптовалют") || strings.Contains(prompt, "crypto") {
 		queries = append(queries,
-			"bitcoin price today",
-			"cryptocurrency market news today",
-			"crypto market cap today",
-			"defi protocols TVL today")
+			"bitcoin price live today",
+			"cryptocurrency market cap live",
+			"crypto news today latest",
+			"defi protocols TVL ranking today",
+			"ethereum price live today",
+			"altcoin prices today")
 	}
 
 	if strings.Contains(prompt, "технолог") || strings.Contains(prompt, "tech") {
 		queries = append(queries,
-			"AI news today",
-			"startup funding today",
-			"tech company news today",
-			"product hunt trending today")
+			"AI news today latest",
+			"startup funding today 2024",
+			"tech company earnings today",
+			"product hunt trending today",
+			"new AI models released today",
+			"tech IPO today 2024")
 	}
 
 	if strings.Contains(prompt, "недвижимость") || strings.Contains(prompt, "real estate") {
 		queries = append(queries,
-			"Москва недвижимость цены сегодня",
-			"Подмосковье земельные участки",
-			"ГИС-Торги новые лоты",
-			"недвижимость инвестиции сегодня")
+			"Москва недвижимость цены сегодня 2024",
+			"Подмосковье земельные участки продажа 2024",
+			"ГИС-Торги новые лоты сегодня",
+			"недвижимость инвестиции Москва 2024",
+			"цены на квартиры Москва сегодня",
+			"земельные участки Подмосковье аукцион 2024",
+			"новостройки Москва цены 2024",
+			"коммерческая недвижимость Москва продажа 2024")
 	}
 
 	if strings.Contains(prompt, "бизнес") || strings.Contains(prompt, "business") {
 		queries = append(queries,
-			"business news today",
-			"startup funding today",
-			"IPO news today",
-			"venture capital news today")
+			"business news today latest",
+			"startup funding today 2024",
+			"IPO news today 2024",
+			"venture capital deals today",
+			"company earnings today",
+			"mergers acquisitions today 2024")
 	}
 
 	if strings.Contains(prompt, "инвестиции") || strings.Contains(prompt, "investment") {
 		queries = append(queries,
-			"stock market today",
-			"investment news today",
-			"market indices today",
-			"financial news today")
+			"stock market today live",
+			"investment news today latest",
+			"market indices today live",
+			"financial news today 2024",
+			"stock prices today live",
+			"market analysis today")
 	}
 
 	if strings.Contains(prompt, "стартап") || strings.Contains(prompt, "startup") {
 		queries = append(queries,
-			"startup news today",
-			"startup funding today",
-			"new startups today",
-			"venture capital today")
+			"startup news today latest",
+			"startup funding today 2024",
+			"new startups launched today",
+			"venture capital today 2024",
+			"startup acquisitions today",
+			"startup IPO today 2024")
 	}
 
 	if strings.Contains(prompt, "глобаль") || strings.Contains(prompt, "global") {
 		queries = append(queries,
-			"world news today",
-			"global economy today",
+			"world news today latest",
+			"global economy today 2024",
 			"international news today",
-			"geopolitical news today")
+			"geopolitical news today",
+			"world markets today",
+			"global trade news today")
 	}
 
 	return queries
