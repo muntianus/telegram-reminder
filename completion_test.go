@@ -39,7 +39,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	defer srv.Close()
 
 	msg := openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: "prompt"}
-	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg}, "gpt-4o")
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg}, "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 	})
 	defer srv.Close()
 
-	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "gpt-4o")
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestChatCompletionError(t *testing.T) {
 	})}
 	client := openai.NewClientWithConfig(cfg)
 
-	_, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "gpt-4o")
+	_, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "o3")
 	if err == nil {
 		t.Fatal("expected error")
 	}

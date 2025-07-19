@@ -41,7 +41,7 @@ func TestCryptoDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.CryptoDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.CryptoDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -71,7 +71,7 @@ func TestTechDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.TechDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.TechDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -101,7 +101,7 @@ func TestRealEstateDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.RealEstateDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.RealEstateDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -131,7 +131,7 @@ func TestBusinessDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.BusinessDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.BusinessDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -161,7 +161,7 @@ func TestInvestmentDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.InvestmentDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.InvestmentDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -191,7 +191,7 @@ func TestStartupDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.StartupDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.StartupDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -221,7 +221,7 @@ func TestGlobalDigestCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.GlobalDigestPrompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.GlobalDigestPrompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
