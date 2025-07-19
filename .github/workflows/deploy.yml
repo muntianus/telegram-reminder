@@ -89,13 +89,23 @@ jobs:
             CHAT_ID="${{ secrets.CHAT_ID }}"
 
             echo "[📦] Обновляем .env..."
+            echo "[🔍] Отладочная информация:"
+            echo "  TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:0:10}..."
+            echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}..."
+            echo "  OPENAI_MODEL: ${OPENAI_MODEL:-НЕ_НАСТРОЕН}"
+            echo "  CHAT_ID: ${CHAT_ID:-НЕ_НАСТРОЕН}"
+            echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
+            
             printf '%s\n' \
               "TELEGRAM_TOKEN=${TELEGRAM_TOKEN}" \
               "OPENAI_API_KEY=${OPENAI_API_KEY}" \
-              "OPENAI_MODEL=${OPENAI_MODEL:-o3}" \
+              "OPENAI_MODEL=${OPENAI_MODEL:-o3-2025-04-16}" \
               "CHAT_ID=${CHAT_ID}" \
               "DOCKERHUB_USER=${DOCKERHUB_USER}" \
               "TASKS_FILE=tasks.yml" > .env
+            
+            echo "[📋] Содержимое .env:"
+            cat .env
 
             echo "[🔍] Проверяем docker-compose.yml..."
             if [ ! -f docker-compose.yml ]; then
@@ -119,6 +129,12 @@ jobs:
             echo "[✅] Контейнер поднят. Проверяем статус..."
             sleep 2
             docker compose ps
+            
+            echo "[🔍] Проверяем переменные окружения в контейнере..."
+            docker exec telegram-reminder env | grep -E "(OPENAI|TELEGRAM)" || echo "Контейнер еще не готов"
+            
+            echo "[📋] Логи контейнера (последние 10 строк):"
+            docker logs telegram-reminder --tail 10 || echo "Логи недоступны"
 
             echo "[✅] Проверка процесса..."
             if ! docker inspect -f '{{.State.Running}}' telegram-reminder | grep true; then
