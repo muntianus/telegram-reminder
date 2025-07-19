@@ -71,11 +71,6 @@ type Task struct {
 	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
 }
 
-// ChatCompleter abstracts the OpenAI client method used by chatCompletion.
-type ChatCompleter interface {
-	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
-}
-
 // MessageSender is implemented by types that can send Telegram messages.
 type MessageSender interface {
 	Send(recipient tb.Recipient, what interface{}, opts ...interface{}) (*tb.Message, error)
@@ -161,39 +156,6 @@ var (
 	TasksMu     sync.RWMutex
 )
 
-// chatCompletion sends messages to OpenAI and returns the reply text using the current model.
-func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage) (string, error) {
-	ModelMu.RLock()
-	m := CurrentModel
-	ModelMu.RUnlock()
-
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:       m,
-		Messages:    msgs,
-		Temperature: 0.9,
-		MaxTokens:   600,
-	})
-	if err != nil {
-		return "", err
-	}
-	if len(resp.Choices) == 0 {
-		return "", nil
-	}
-	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
-}
-
-// systemCompletion generates a reply to a system-level prompt using OpenAI.
-func SystemCompletion(ctx context.Context, client ChatCompleter, prompt string) (string, error) {
-	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleSystem, Content: prompt}}
-	return ChatCompletion(ctx, client, msgs)
-}
-
-// userCompletion generates a reply to a user's message using OpenAI.
-func UserCompletion(ctx context.Context, client ChatCompleter, message string) (string, error) {
-	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: message}}
-	return ChatCompletion(ctx, client, msgs)
-}
-
 // applyTemplate replaces placeholders in the prompt with runtime values.
 func applyTemplate(prompt string) string {
 	vars := map[string]string{
@@ -209,7 +171,7 @@ func applyTemplate(prompt string) string {
 }
 
 // RegisterTaskCommands creates bot handlers for all named tasks.
-func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
+func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
 	TasksMu.RLock()
 	tasks := append([]Task(nil), LoadedTasks...)
 	TasksMu.RUnlock()
@@ -224,18 +186,18 @@ func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 			defer cancel()
 
 			prompt := applyTemplate(tcopy.Prompt)
-			text, err := SystemCompletion(ctx, client, prompt)
+			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 			if err != nil {
 				logger.L.Error("openai error", "err", err)
 				return c.Send("OpenAI error")
 			}
-			return c.Send(text)
+			return c.Send(resp)
 		})
 	}
 }
 
 // scheduleDailyMessages sets up the daily lunch idea and brief messages.
-func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
+func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot, chatID int64) {
 	tasks, err := LoadTasks()
 	if err != nil {
 		logger.L.Error("load tasks", "err", err)
@@ -254,11 +216,12 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 
 			log.Printf("running task: %s", tcopy.Name)
 			prompt := applyTemplate(tcopy.Prompt)
-			text, err := SystemCompletion(ctx, client, prompt)
+			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 			if err != nil {
 				logger.L.Error("openai error", "err", err)
 				return
 			}
+			text := resp
 			if chatID != 0 {
 				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
 					log.Printf("telegram send error: %v", err)
@@ -299,7 +262,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 }
 
 // SendStartupMessage notifies the chat that the bot is running.
-func SendStartupMessage(b MessageSender, chatID int64) {
+func SendStartupMessage(b *tb.Bot, chatID int64) {
 	if chatID != 0 {
 		if _, err := b.Send(tb.ChatID(chatID), StartupMessage); err != nil {
 			logger.L.Error("telegram send", "err", err)
@@ -366,7 +329,7 @@ func handleTasks(c tb.Context) error {
 	return c.Send(FormatTasks(tasks))
 }
 
-func handleTask(client ChatCompleter) func(tb.Context) error {
+func handleTask(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		name := strings.TrimSpace(c.Message().Payload)
 		TasksMu.RLock()
@@ -382,12 +345,12 @@ func handleTask(client ChatCompleter) func(tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		prompt := applyTemplate(t.Prompt)
-		text, err := SystemCompletion(ctx, client, prompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
-		return c.Send(text)
+		return c.Send(resp)
 	}
 }
 
@@ -410,29 +373,29 @@ func handleModel() func(tb.Context) error {
 	}
 }
 
-func handleLunch(client ChatCompleter) func(tb.Context) error {
+func handleLunch(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		text, err := SystemCompletion(ctx, client, LunchIdeaPrompt)
+		resp, err := SystemCompletion(ctx, client, LunchIdeaPrompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
-		return c.Send(text)
+		return c.Send(resp)
 	}
 }
 
-func handleBrief(client ChatCompleter) func(tb.Context) error {
+func handleBrief(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		text, err := SystemCompletion(ctx, client, DailyBriefPrompt)
+		resp, err := SystemCompletion(ctx, client, DailyBriefPrompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
-		return c.Send(text)
+		return c.Send(resp)
 	}
 }
 
@@ -469,7 +432,7 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 	}
 }
 
-func handleChat(client ChatCompleter) func(tb.Context) error {
+func handleChat(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		q := strings.TrimSpace(c.Message().Payload)
 		if q == "" {
@@ -477,12 +440,12 @@ func handleChat(client ChatCompleter) func(tb.Context) error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		text, err := UserCompletion(ctx, client, q)
+		resp, err := UserCompletion(ctx, client, q, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "err", err)
 			return c.Send("OpenAI error")
 		}
-		_, err = c.Bot().Send(c.Sender(), text)
+		_, err = c.Bot().Send(c.Sender(), resp)
 		return err
 	}
 }

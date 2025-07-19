@@ -1,19 +1,15 @@
 package main
 
 import (
-	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	botpkg "telegram-reminder/internal/bot"
 
 	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
-	botpkg "telegram-reminder/internal/bot"
 )
-
-type fakeTaskClient struct{ text string }
-
-func (f fakeTaskClient) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
-	return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{{Message: openai.ChatCompletionMessage{Content: f.text}}}}, nil
-}
 
 type taskCtx struct {
 	tb.Context
@@ -28,6 +24,24 @@ func (t *taskCtx) Send(what interface{}, opts ...interface{}) error {
 }
 
 func TestRegisterTaskCommands(t *testing.T) {
+	// Create mock server
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"choices": [{
+				"message": {
+					"content": "resp"
+				}
+			}]
+		}`))
+	}))
+	defer srv.Close()
+
+	// Create real client with mock server
+	cfg := openai.DefaultConfig("test-key")
+	cfg.BaseURL = srv.URL
+	client := openai.NewClientWithConfig(cfg)
+
 	botpkg.TasksMu.Lock()
 	botpkg.LoadedTasks = []botpkg.Task{{Name: "foo", Prompt: "p"}}
 	botpkg.TasksMu.Unlock()
@@ -37,7 +51,6 @@ func TestRegisterTaskCommands(t *testing.T) {
 		t.Fatalf("new bot: %v", err)
 	}
 
-	client := fakeTaskClient{text: "resp"}
 	botpkg.RegisterTaskCommands(b, client)
 
 	ctx := &taskCtx{}

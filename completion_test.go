@@ -8,8 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	openai "github.com/sashabaranov/go-openai"
 	"telegram-reminder/internal/bot"
+
+	openai "github.com/sashabaranov/go-openai"
 )
 
 // helper to create client backed by test server
@@ -38,7 +39,7 @@ func TestChatCompletionSuccess(t *testing.T) {
 	defer srv.Close()
 
 	msg := openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: "prompt"}
-	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg})
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{msg}, "gpt-4o")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -58,7 +59,7 @@ func TestChatCompletionNoChoices(t *testing.T) {
 	})
 	defer srv.Close()
 
-	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	got, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "gpt-4o")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,7 +75,7 @@ func TestChatCompletionError(t *testing.T) {
 	})}
 	client := openai.NewClientWithConfig(cfg)
 
-	_, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}})
+	_, err := bot.ChatCompletion(context.Background(), client, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}, "gpt-4o")
 	if err == nil {
 		t.Fatal("expected error")
 	}
