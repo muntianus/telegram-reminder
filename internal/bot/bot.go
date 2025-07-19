@@ -410,7 +410,11 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 			logger.L.Error("blockchain call", "err", err)
 			return c.Send("blockchain error")
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				logger.L.Error("failed to close response body", "err", err)
+			}
+		}()
 		if resp.StatusCode != http.StatusOK {
 			logger.L.Error("blockchain status", "status", resp.Status)
 			return c.Send("blockchain error")

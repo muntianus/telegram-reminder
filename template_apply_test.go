@@ -32,13 +32,16 @@ func TestRegisterTaskCommandsTemplate(t *testing.T) {
 		// Parse request body to extract prompt (simplified)
 		prompts = append(prompts, "path:one") // Mock the prompt extraction
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
+		_, err := w.Write([]byte(`{
 			"choices": [{
 				"message": {
 					"content": "resp"
 				}
 			}]
 		}`))
+		if err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
 	}))
 	defer srv.Close()
 
@@ -83,13 +86,16 @@ func TestScheduleDailyMessagesTemplate(t *testing.T) {
 	// Create mock server
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
+		_, err := w.Write([]byte(`{
 			"choices": [{
 				"message": {
 					"content": "resp"
 				}
 			}]
 		}`))
+		if err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
 	}))
 	defer srv.Close()
 

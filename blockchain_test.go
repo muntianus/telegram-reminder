@@ -50,7 +50,11 @@ func TestBlockchainHandler(t *testing.T) {
 		if err != nil {
 			return c.Send("blockchain error")
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Errorf("failed to close response body: %v", err)
+			}
+		}()
 		var st struct {
 			MarketPriceUSD float64 `json:"market_price_usd"`
 			NTx            int64   `json:"n_tx"`
