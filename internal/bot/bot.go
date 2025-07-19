@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -31,7 +30,6 @@ type WebSearchResult struct {
 
 // WebSearch performs a web search using DuckDuckGo API
 func WebSearch(query string) ([]WebSearchResult, error) {
-	// Using DuckDuckGo Instant Answer API (free, no API key required)
 	baseURL := "https://api.duckduckgo.com/"
 	params := url.Values{}
 	params.Add("q", query)
@@ -39,67 +37,72 @@ func WebSearch(query string) ([]WebSearchResult, error) {
 	params.Add("no_html", "1")
 	params.Add("skip_disambig", "1")
 
-	resp, err := http.Get(baseURL + "?" + params.Encode())
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 5 * time.Second, // 5 second timeout for web search
+	}
+
+	resp, err := client.Get(baseURL + "?" + params.Encode())
 	if err != nil {
 		return nil, fmt.Errorf("web search request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("web search failed with status: %d", resp.StatusCode)
 	}
 
 	var result struct {
-		Abstract      string `json:"Abstract"`
-		AbstractURL   string `json:"AbstractURL"`
-		AbstractText  string `json:"AbstractText"`
-		RelatedTopics []struct {
-			Text     string `json:"Text"`
-			FirstURL string `json:"FirstURL"`
-		} `json:"RelatedTopics"`
-		Results []struct {
-			Title string `json:"Title"`
-			URL   string `json:"URL"`
-			Text  string `json:"Text"`
+		AbstractText   string `json:"AbstractText"`
+		AbstractURL    string `json:"AbstractURL"`
+		AbstractSource string `json:"AbstractSource"`
+		Results        []struct {
+			Title   string `json:"Title"`
+			URL     string `json:"FirstURL"`
+			Snippet string `json:"Text"`
 		} `json:"Results"`
+		RelatedTopics []struct {
+			Text string `json:"Text"`
+			URL  string `json:"FirstURL"`
+		} `json:"RelatedTopics"`
 	}
 
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse search results: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	var results []WebSearchResult
 
-	// Add main result if available
-	if result.Abstract != "" {
+	// Add abstract if available
+	if result.AbstractText != "" && result.AbstractURL != "" {
 		results = append(results, WebSearchResult{
-			Title:   "Main Result",
+			Title:   result.AbstractSource,
 			URL:     result.AbstractURL,
-			Snippet: result.Abstract,
+			Snippet: result.AbstractText,
 		})
 	}
 
 	// Add specific results
-	for _, res := range result.Results {
-		results = append(results, WebSearchResult{
-			Title:   res.Title,
-			URL:     res.URL,
-			Snippet: res.Text,
-		})
+	for _, r := range result.Results {
+		if r.Title != "" && r.URL != "" {
+			results = append(results, WebSearchResult{
+				Title:   r.Title,
+				URL:     r.URL,
+				Snippet: r.Snippet,
+			})
+		}
 	}
 
 	// Add related topics if no specific results
-	if len(result.Results) == 0 {
-		for i, topic := range result.RelatedTopics {
-			if i >= 5 { // Limit to 5 results
-				break
+	if len(results) == 0 && len(result.RelatedTopics) > 0 {
+		for _, rt := range result.RelatedTopics {
+			if rt.Text != "" && rt.URL != "" {
+				results = append(results, WebSearchResult{
+					Title:   rt.Text,
+					URL:     rt.URL,
+					Snippet: rt.Text,
+				})
 			}
-			results = append(results, WebSearchResult{
-				Title:   topic.Text,
-				URL:     topic.FirstURL,
-				Snippet: topic.Text,
-			})
 		}
 	}
 
@@ -112,6 +115,8 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 	searchQueries := extractSearchQueries(prompt)
 
 	var webContext string
+	var webSearchAvailable bool = true
+
 	if len(searchQueries) > 0 {
 		webContext = "🔍 АКТУАЛЬНАЯ ИНФОРМАЦИЯ ИЗ ИНТЕРНЕТА:\n\n"
 
@@ -119,6 +124,7 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 			results, err := WebSearch(query)
 			if err != nil {
 				logger.L.Error("web search failed", "query", query, "err", err)
+				webSearchAvailable = false
 				continue
 			}
 
@@ -134,10 +140,13 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 		}
 	}
 
-	// Combine web context with original prompt
+	// If web search is not available, modify the prompt to work without it
 	enhancedPrompt := prompt
-	if webContext != "" {
+	if webContext != "" && webSearchAvailable {
 		enhancedPrompt = webContext + "\n" + prompt
+	} else if !webSearchAvailable {
+		// Add fallback instruction when web search is down
+		enhancedPrompt = "⚠️ ВЕБ-ПОИСК ВРЕМЕННО НЕДОСТУПЕН\n\n" + prompt + "\n\n💡 Используй свои знания для генерации актуального контента."
 	}
 
 	return SystemCompletion(ctx, client, enhancedPrompt, model)
