@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"testing"
 
 	botpkg "telegram-reminder/internal/bot"
+	"telegram-reminder/internal/logger"
 )
 
 func TestLoadTasksLogsFallback(t *testing.T) {
@@ -19,8 +20,9 @@ func TestLoadTasksLogsFallback(t *testing.T) {
 	t.Setenv("TASKS_JSON", "")
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	t.Cleanup(func() { log.SetOutput(os.Stderr) })
+	l := slog.New(slog.NewTextHandler(&buf, nil))
+	logger.SetLogger(l)
+	t.Cleanup(func() { logger.SetLogger(slog.New(slog.NewTextHandler(os.Stderr, nil))) })
 
 	_, err := botpkg.LoadTasks()
 	if err != nil {
