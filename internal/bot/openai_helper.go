@@ -25,12 +25,24 @@ type ChatCompleter interface {
 //   - string: The generated response text, trimmed of whitespace
 //   - error: Any error that occurred during the API call
 func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage, model string) (string, error) {
-	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:       model,
-		Messages:    msgs,
-		Temperature: 0.9,
-		MaxTokens:   600,
-	})
+	// Create base request
+	req := openai.ChatCompletionRequest{
+		Model:    model,
+		Messages: msgs,
+	}
+
+	// Configure parameters based on model type
+	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
+		// o3/o1 models have fixed parameters: temperature=1, top_p=1, n=1
+		// presence_penalty and frequency_penalty are fixed at 0
+		req.MaxCompletionTokens = 600
+	} else {
+		// Standard models support custom parameters
+		req.Temperature = 0.9
+		req.MaxTokens = 600
+	}
+
+	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		return "", err
 	}
