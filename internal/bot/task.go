@@ -11,13 +11,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-// Task represents a scheduled job definition.
-type Task struct {
-	Name   string `json:"name" yaml:"name"`
-	Prompt string `json:"prompt" yaml:"prompt"`
-	Time   string `json:"time,omitempty" yaml:"time,omitempty"`
-	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
-}
+// Task struct is defined in bot.go
 
 func envDefault(key, def string) string {
 	if v := os.Getenv(key); v != "" {

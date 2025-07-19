@@ -62,13 +62,13 @@ const (
 	DefaultBriefTime = "20:00"
 )
 
-// --- ВЫНЕСЕНО В task.go ---
-// type Task struct { ... }
-// func readTasksFile ...
-// func LoadTasks ...
-// func FormatTasks ...
-// func FormatTaskNames ...
-// func FindTask ...
+// Task represents a scheduled job definition.
+type Task struct {
+	Name   string `json:"name" yaml:"name"`
+	Prompt string `json:"prompt" yaml:"prompt"`
+	Time   string `json:"time,omitempty" yaml:"time,omitempty"`
+	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
+}
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
 type ChatCompleter interface {
@@ -207,8 +207,6 @@ func applyTemplate(prompt string) string {
 	return prompt
 }
 
-// --- ВЫНЕСЕНО В task.go ---
-
 // RegisterTaskCommands creates bot handlers for all named tasks.
 func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 	TasksMu.RLock()
@@ -253,6 +251,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
 
+			log.Printf("running task: %s", tcopy.Name)
 			prompt := applyTemplate(tcopy.Prompt)
 			text, err := SystemCompletion(ctx, client, prompt)
 			if err != nil {
@@ -262,6 +261,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 			if chatID != 0 {
 				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
 					log.Printf("telegram send error: %v", err)
+				} else {
+					log.Printf("sent to chat_id: %d", chatID)
 				}
 				return
 			}
@@ -273,6 +274,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot,
 			for _, id := range ids {
 				if _, err := b.Send(tb.ChatID(id), text); err != nil {
 					log.Printf("telegram send error: %v", err)
+				} else {
+					log.Printf("sent to chat_id: %d", id)
 				}
 			}
 		}
