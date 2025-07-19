@@ -71,10 +71,7 @@ type Task struct {
 	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
 }
 
-// MessageSender is implemented by types that can send Telegram messages.
-type MessageSender interface {
-	Send(recipient tb.Recipient, what interface{}, opts ...interface{}) (*tb.Message, error)
-}
+// Удалить неиспользуемый интерфейс MessageSender
 
 var (
 	CurrentModel = "gpt-4o"

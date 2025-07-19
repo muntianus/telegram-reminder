@@ -14,6 +14,15 @@ import (
 
 // Task struct is defined in bot.go
 
+// envDefault returns the environment variable value or a default if not set.
+// This is a utility function for providing fallback values for configuration.
+//
+// Parameters:
+//   - key: Environment variable name
+//   - def: Default value to return if environment variable is not set
+//
+// Returns:
+//   - string: Environment variable value or default value
 func envDefault(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -22,6 +31,15 @@ func envDefault(key, def string) string {
 }
 
 // readTasksFile loads tasks from a YAML or JSON file.
+// Supports both individual task arrays and structured files with base_prompt.
+//
+// Parameters:
+//   - fn: File path to read tasks from
+//
+// Returns:
+//   - []Task: Array of loaded tasks
+//   - string: Base prompt if found in file
+//   - error: Any error that occurred during file reading or parsing
 func readTasksFile(fn string) ([]Task, string, error) {
 	data, err := os.ReadFile(fn)
 	if err != nil {
@@ -51,9 +69,15 @@ func readTasksFile(fn string) ([]Task, string, error) {
 	return tasks, "", nil
 }
 
-// LoadTasks reads task configuration from TASKS_FILE or TASKS_JSON. If neither
-// is provided, it falls back to tasks.yml or the legacy LUNCH_TIME and
-// BRIEF_TIME environment variables.
+// LoadTasks reads task configuration from multiple sources in order of priority:
+// 1. TASKS_FILE environment variable (YAML/JSON file)
+// 2. TASKS_JSON environment variable (JSON string)
+// 3. tasks.yml or tasks.yaml files in current directory
+// 4. Default tasks using LUNCH_TIME and BRIEF_TIME environment variables
+//
+// Returns:
+//   - []Task: Array of loaded tasks
+//   - error: Any error that occurred during loading
 func LoadTasks() ([]Task, error) {
 	if fn := os.Getenv("TASKS_FILE"); fn != "" {
 		tasks, bp, err := readTasksFile(fn)
@@ -98,6 +122,13 @@ func LoadTasks() ([]Task, error) {
 }
 
 // FormatTasks returns a text summary of tasks with their time or cron expression.
+// Each task is formatted as "time - name" on a separate line.
+//
+// Parameters:
+//   - tasks: Array of tasks to format
+//
+// Returns:
+//   - string: Formatted task list or "no tasks" if empty
 func FormatTasks(tasks []Task) string {
 	if len(tasks) == 0 {
 		return "no tasks"
@@ -121,6 +152,13 @@ func FormatTasks(tasks []Task) string {
 }
 
 // FormatTaskNames returns a newline separated list of task names.
+// Only tasks with non-empty names are included.
+//
+// Parameters:
+//   - tasks: Array of tasks to extract names from
+//
+// Returns:
+//   - string: Newline-separated task names or "no tasks" if empty
 func FormatTaskNames(tasks []Task) string {
 	names := []string{}
 	for _, t := range tasks {
@@ -135,6 +173,15 @@ func FormatTaskNames(tasks []Task) string {
 }
 
 // FindTask returns the task with the given name, if any.
+// Performs case-sensitive name matching.
+//
+// Parameters:
+//   - tasks: Array of tasks to search in
+//   - name: Task name to find
+//
+// Returns:
+//   - Task: Found task or empty Task struct
+//   - bool: True if task was found, false otherwise
 func FindTask(tasks []Task, name string) (Task, bool) {
 	for _, t := range tasks {
 		if t.Name == name {
