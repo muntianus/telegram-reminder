@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	tb "gopkg.in/telebot.v3"
 	botpkg "telegram-reminder/internal/bot"
+
+	tb "gopkg.in/telebot.v3"
 )
 
 type modelFakeCtx struct {
@@ -46,14 +47,14 @@ func TestModelCommand(t *testing.T) {
 	})
 
 	botpkg.ModelMu.Lock()
-	botpkg.CurrentModel = "gpt-4o"
+	botpkg.CurrentModel = "o3"
 	botpkg.ModelMu.Unlock()
 
 	ctx := &modelFakeCtx{msg: &tb.Message{Payload: ""}}
 	if err := bot.Trigger("/model", ctx); err != nil {
 		t.Fatalf("trigger no arg: %v", err)
 	}
-	if ctx.sent != fmt.Sprintf("Current model: gpt-4o\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
+	if ctx.sent != fmt.Sprintf("Current model: o3\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx.sent)
 	}
 

@@ -1,4 +1,4 @@
-model: gpt-4o
+model: o3
 base_prompt: &base |
   Ты — Telegram-бот для ежедневного дайджеста. Говоришь кратко, дерзко, панибратски.
   
@@ -41,12 +41,12 @@ tasks:
     prompt: *base
   - name: crypto_am
     time: "11:00"
-    model: gpt-4o
+    model: o3
     prompt: |
       {CryptoDigestPrompt}
   - name: tech_digest
     time: "12:00"
-    model: gpt-4o
+    model: o3
     prompt: |
       {TechDigestPrompt}
   - name: gis_lots
@@ -71,27 +71,27 @@ tasks:
       Дай краткое описание, стек технологий и план реализации.
   - name: crypto_pm
     time: "16:00"
-    model: gpt-4o
+    model: o3
     prompt: |
       {CryptoDigestPrompt}
   - name: business_digest
     time: "17:00"
-    model: gpt-4o
+    model: o3
     prompt: |
       {BusinessDigestPrompt}
   - name: investment_digest
     time: "18:00"
-    model: gpt-4-turbo
+    model: o3
     prompt: |
       {InvestmentDigestPrompt}
   - name: startup_digest
     time: "19:00"
-    model: gpt-4o
+    model: o3
     prompt: |
       {StartupDigestPrompt}
   - name: global_digest
     time: "19:30"
-    model: gpt-4o
+    model: o3
     prompt: |
       {GlobalDigestPrompt}
   - name: biz_idea
