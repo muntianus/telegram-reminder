@@ -147,77 +147,101 @@ func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt
 func extractSearchQueries(prompt string) []string {
 	var queries []string
 
-	// Extract queries based on prompt type with more specific searches
+	// Extract queries based on prompt type with more specific searches for today's news
 	if strings.Contains(prompt, "криптовалют") || strings.Contains(prompt, "crypto") {
 		queries = append(queries,
-			"bitcoin price live today",
-			"cryptocurrency market cap live",
-			"crypto news today latest",
-			"defi protocols TVL ranking today",
-			"ethereum price live today",
-			"altcoin prices today")
+			"bitcoin news today 2024",
+			"cryptocurrency news today latest",
+			"crypto market news today",
+			"defi news today 2024",
+			"ethereum news today",
+			"altcoin news today latest",
+			"crypto regulation news today",
+			"crypto exchange news today")
 	}
 
 	if strings.Contains(prompt, "технолог") || strings.Contains(prompt, "tech") {
 		queries = append(queries,
-			"AI news today latest",
-			"startup funding today 2024",
-			"tech company earnings today",
-			"product hunt trending today",
-			"new AI models released today",
-			"tech IPO today 2024")
+			"AI news today 2024",
+			"startup news today latest",
+			"tech company news today",
+			"product hunt today",
+			"new AI models today",
+			"tech IPO news today 2024",
+			"artificial intelligence news today",
+			"tech funding news today",
+			"software news today",
+			"tech acquisitions today")
 	}
 
 	if strings.Contains(prompt, "недвижимость") || strings.Contains(prompt, "real estate") {
 		queries = append(queries,
-			"Москва недвижимость цены сегодня 2024",
-			"Подмосковье земельные участки продажа 2024",
-			"ГИС-Торги новые лоты сегодня",
-			"недвижимость инвестиции Москва 2024",
-			"цены на квартиры Москва сегодня",
-			"земельные участки Подмосковье аукцион 2024",
-			"новостройки Москва цены 2024",
-			"коммерческая недвижимость Москва продажа 2024")
+			"Москва недвижимость новости сегодня",
+			"Подмосковье недвижимость новости сегодня",
+			"ГИС-Торги новости сегодня",
+			"недвижимость новости Москва сегодня",
+			"цены на недвижимость новости сегодня",
+			"земельные участки новости сегодня",
+			"новостройки Москва новости сегодня",
+			"коммерческая недвижимость новости сегодня",
+			"ипотека новости сегодня",
+			"недвижимость аналитика сегодня")
 	}
 
 	if strings.Contains(prompt, "бизнес") || strings.Contains(prompt, "business") {
 		queries = append(queries,
 			"business news today latest",
-			"startup funding today 2024",
+			"startup news today 2024",
 			"IPO news today 2024",
-			"venture capital deals today",
-			"company earnings today",
-			"mergers acquisitions today 2024")
+			"venture capital news today",
+			"company earnings news today",
+			"mergers acquisitions news today 2024",
+			"business trends today",
+			"entrepreneurship news today",
+			"business technology news today",
+			"market news today")
 	}
 
 	if strings.Contains(prompt, "инвестиции") || strings.Contains(prompt, "investment") {
 		queries = append(queries,
-			"stock market today live",
+			"stock market news today",
 			"investment news today latest",
-			"market indices today live",
+			"market analysis today",
 			"financial news today 2024",
-			"stock prices today live",
-			"market analysis today")
+			"stock prices news today",
+			"market trends today",
+			"investment opportunities today",
+			"portfolio news today",
+			"trading news today",
+			"wealth management news today")
 	}
 
 	if strings.Contains(prompt, "стартап") || strings.Contains(prompt, "startup") {
 		queries = append(queries,
 			"startup news today latest",
-			"startup funding today 2024",
+			"startup funding news today 2024",
 			"new startups launched today",
-			"venture capital today 2024",
-			"startup acquisitions today",
-			"startup IPO today 2024")
+			"venture capital news today 2024",
+			"startup acquisitions news today",
+			"startup IPO news today 2024",
+			"startup ecosystem news today",
+			"startup technology news today",
+			"startup trends today",
+			"startup success stories today")
 	}
 
 	if strings.Contains(prompt, "глобаль") || strings.Contains(prompt, "global") {
 		queries = append(queries,
 			"world news today latest",
-			"global economy today 2024",
+			"global economy news today 2024",
 			"international news today",
 			"geopolitical news today",
-			"world markets today",
-			"global trade news today")
+			"world markets news today",
+			"global trade news today",
+			"world politics news today",
+			"international relations news today",
+			"global business news today",
+			"world events today")
 	}
 
 	return queries
@@ -238,11 +262,13 @@ const (
 🪙 Альт дня (актуальная монета на основе сегодняшних движений, линк CoinGecko)
 🚀 Пушка с ProductHunt (сегодняшние топовые проекты)
 
-🔍 ИНТЕРНЕТ-АНАЛИЗ: Используй актуальную информацию из интернета по темам:
+🔍 ИНТЕРНЕТ-АНАЛИЗ: Используй СВЕЖУЮ ИНФОРМАЦИЮ ИЗ СТАТЕЙ ЗА ПОСЛЕДНИЕ 24 ЧАСА по темам:
 - Криптовалюты и DeFi
 - Технологии и стартапы
 - Недвижимость и инвестиции
 - Бизнес-тренды
+
+ВАЖНО: Все ссылки должны вести на СВЕЖИЕ СТАТЬИ ЗА ПОСЛЕДНИЕ 24 ЧАСА, а не на старые данные.
 
 Форматируй одним сообщением для Telegram, без лишней воды.
 `
