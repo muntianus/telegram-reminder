@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"telegram-reminder/internal/config"
+	"telegram-reminder/internal/logger"
 
 	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"

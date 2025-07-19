@@ -3,10 +3,11 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"telegram-reminder/internal/logger"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -86,7 +87,7 @@ func LoadTasks() ([]Task, error) {
 		}
 	}
 
-	log.Print("tasks.yml not found; using default tasks")
+	logger.L.Info("tasks.yml not found; using default tasks")
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
 	briefTime := envDefault("BRIEF_TIME", DefaultBriefTime)
