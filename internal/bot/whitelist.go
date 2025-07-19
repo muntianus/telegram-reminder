@@ -8,11 +8,13 @@ import (
 	"sync"
 )
 
-// WhitelistFile is the path to the JSON file that stores chat IDs.
-// It can be overridden in tests.
+// WhitelistFile — путь к JSON-файлу со списком чатов (может быть переопределён в тестах).
 var WhitelistFile = envDefault("WHITELIST_FILE", "whitelist.json")
+
+// wlMu — мьютекс для потокобезопасной работы с файлом whitelist.
 var wlMu sync.Mutex
 
+// loadWhitelist читает список ID из файла whitelist.
 func loadWhitelist() ([]int64, error) {
 	wlMu.Lock()
 	defer wlMu.Unlock()
@@ -34,6 +36,7 @@ func loadWhitelist() ([]int64, error) {
 	return ids, nil
 }
 
+// saveWhitelist сохраняет список ID в файл whitelist.
 func saveWhitelist(ids []int64) error {
 	wlMu.Lock()
 	defer wlMu.Unlock()
@@ -45,12 +48,12 @@ func saveWhitelist(ids []int64) error {
 	return os.WriteFile(WhitelistFile, data, 0644)
 }
 
-// LoadWhitelist returns the list of whitelisted chat IDs.
+// LoadWhitelist возвращает список whitelisted chat ID.
 func LoadWhitelist() ([]int64, error) {
 	return loadWhitelist()
 }
 
-// AddIDToWhitelist stores the chat ID if it is not already present.
+// AddIDToWhitelist добавляет ID в whitelist, если его там нет.
 func AddIDToWhitelist(id int64) error {
 	ids, err := loadWhitelist()
 	if err != nil {
@@ -65,7 +68,7 @@ func AddIDToWhitelist(id int64) error {
 	return saveWhitelist(ids)
 }
 
-// RemoveIDFromWhitelist removes the chat ID from the list.
+// RemoveIDFromWhitelist удаляет ID из whitelist.
 func RemoveIDFromWhitelist(id int64) error {
 	ids, err := loadWhitelist()
 	if err != nil {
@@ -80,7 +83,7 @@ func RemoveIDFromWhitelist(id int64) error {
 	return saveWhitelist(out)
 }
 
-// FormatWhitelist returns the IDs as a newline separated string.
+// FormatWhitelist возвращает список ID в виде строки с переводами строк.
 func FormatWhitelist(ids []int64) string {
 	if len(ids) == 0 {
 		return ""
