@@ -23,19 +23,36 @@ import (
 // Prompt templates
 const (
 	DailyBriefPrompt = `
-Ты говоришь кратко, дерзко, панибратски.
+Ты — Telegram-бот для ежедневного дайджеста. Говоришь кратко, дерзко, панибратски.
+
+📅 ВАЖНО: Анализируй информацию ТОЛЬКО за сегодняшний день.
+
 Заполни блоки:
 ⚡ Микродействие (одно простое действие на сегодня)
-🧠 Тема дня (мини‑инсайт/мысль)
-💰 Что залутать (актив/идея)
-🏞️ Земля на присмотр (лоты в южном Подмосковье: Бутово, Щербинка, Подольск, Воскресенск), дай 1‑2 лота со ссылками.
-🪙 Альт дня (актуальная монета, линк CoinGecko)
-🚀 Пушка с ProductHunt (ссылка)
-Форматируй одним сообщением, без лишней воды.
+🧠 Тема дня (мини‑инсайт/мысль на основе сегодняшних событий)
+💰 Что залутать (актив/идея на основе сегодняшних трендов)
+🏞️ Земля на присмотр (лоты в южном Подмосковье: Бутово, Щербинка, Подольск, Воскресенск)
+🪙 Альт дня (актуальная монета на основе сегодняшних движений, линк CoinGecko)
+🚀 Пушка с ProductHunt (сегодняшние топовые проекты)
+
+🔍 ИНТЕРНЕТ-АНАЛИЗ: Используй актуальную информацию из интернета по темам:
+- Криптовалюты и DeFi
+- Технологии и стартапы
+- Недвижимость и инвестиции
+- Бизнес-тренды
+
+Форматируй одним сообщением для Telegram, без лишней воды.
 `
 
 	LunchIdeaPrompt = `
-Подавай одну бизнес‑идею + примерный план из 4‑5 пунктов (коротко) + ссылки на релевантные ресурсы/репо/доки. Стиль панибратский, минимум воды.
+🚀 БИЗНЕС-ИДЕЯ НА СЕГОДНЯ
+
+Подавай одну бизнес‑идею на основе сегодняшних трендов и событий.
+Примерный план из 4‑5 пунктов со ссылками на релевантные ресурсы.
+Стиль панибратский, минимум воды.
+Используй актуальную информацию из интернета.
+
+Форматируй для Telegram с эмодзи и четкой структурой.
 `
 )
 
@@ -52,6 +69,13 @@ const CommandsList = `/chat <сообщение> – задать боту во�
 /model [имя] – показать или сменить модель (по умолчанию gpt-4o)
 /lunch – немедленно запросить идеи на обед
 /brief – немедленно запросить вечерний дайджест
+/crypto – криптовалютный дайджест
+/tech – технологический дайджест
+/realestate – дайджест недвижимости
+/business – бизнес-дайджест
+/investment – инвестиционный дайджест
+/startup – стартап-дайджест
+/global – глобальный дайджест
 /tasks – вывести текущее расписание задач
 /task [имя] – список задач или запуск выбранной
 /blockchain – метрики сети биткоина
@@ -454,6 +478,98 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 	}
 }
 
+// Обработчики для новых команд дайджестов
+func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, CryptoDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleTechDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, TechDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, RealEstateDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, BusinessDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, InvestmentDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleStartupDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, StartupDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
+func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
+	return func(c tb.Context) error {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		resp, err := SystemCompletion(ctx, client, GlobalDigestPrompt, CurrentModel)
+		if err != nil {
+			logger.L.Error("openai error", "err", err)
+			return c.Send("OpenAI error")
+		}
+		return c.Send(resp)
+	}
+}
+
 // Run initializes and starts the Telegram bot.
 func Run(cfg config.Config) error {
 	if cfg.OpenAIModel != "" {
@@ -499,6 +615,13 @@ func Run(cfg config.Config) error {
 	b.Handle("/model", handleModel())
 	b.Handle("/lunch", handleLunch(client))
 	b.Handle("/brief", handleBrief(client))
+	b.Handle("/crypto", handleCryptoDigest(client))
+	b.Handle("/tech", handleTechDigest(client))
+	b.Handle("/realestate", handleRealEstateDigest(client))
+	b.Handle("/business", handleBusinessDigest(client))
+	b.Handle("/investment", handleInvestmentDigest(client))
+	b.Handle("/startup", handleStartupDigest(client))
+	b.Handle("/global", handleGlobalDigest(client))
 	b.Handle("/blockchain", handleBlockchain(cfg.BlockchainAPI))
 	b.Handle("/chat", handleChat(client))
 
