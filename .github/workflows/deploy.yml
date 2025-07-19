@@ -85,21 +85,18 @@ jobs:
             DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
             TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
-            OPENAI_MODEL="${{ secrets.OPENAI_MODEL }}"
             CHAT_ID="${{ secrets.CHAT_ID }}"
 
             echo "[📦] Обновляем .env..."
             echo "[🔍] Отладочная информация:"
             echo "  TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:0:10}..."
             echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}..."
-            echo "  OPENAI_MODEL: ${OPENAI_MODEL:-НЕ_НАСТРОЕН}"
             echo "  CHAT_ID: ${CHAT_ID:-НЕ_НАСТРОЕН}"
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
             
             printf '%s\n' \
               "TELEGRAM_TOKEN=${TELEGRAM_TOKEN}" \
               "OPENAI_API_KEY=${OPENAI_API_KEY}" \
-              "OPENAI_MODEL=${OPENAI_MODEL:-o3-2025-04-16}" \
               "CHAT_ID=${CHAT_ID}" \
               "DOCKERHUB_USER=${DOCKERHUB_USER}" \
               "TASKS_FILE=tasks.yml" > .env
