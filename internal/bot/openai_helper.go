@@ -19,7 +19,7 @@ type ChatCompleter interface {
 //   - ctx: Context for the request with timeout
 //   - client: OpenAI client implementing ChatCompleter interface
 //   - msgs: Array of chat messages to send
-//   - model: OpenAI model name (e.g., "gpt-4o", "gpt-3.5-turbo")
+//   - model: OpenAI model name (e.g., "o3", "gpt-3.5-turbo")
 //
 // Returns:
 //   - string: The generated response text, trimmed of whitespace

@@ -58,7 +58,7 @@ func TestTaskCommand(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
-		text, err := botpkg.SystemCompletion(ctx, client, tsk.Prompt, "gpt-4o")
+		text, err := botpkg.SystemCompletion(ctx, client, tsk.Prompt, "o3")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

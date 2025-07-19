@@ -40,7 +40,7 @@ func TestChatCompletionWithError(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	_, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o")
+	_, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -54,7 +54,7 @@ func TestChatCompletionEmptyResponse(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestChatCompletionWhitespaceTrimming(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestSystemCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
 
-	_, err := botpkg.SystemCompletion(ctx, client, "test prompt", "gpt-4o")
+	_, err := botpkg.SystemCompletion(ctx, client, "test prompt", "o3")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -95,7 +95,7 @@ func TestUserCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
 
-	_, err := botpkg.UserCompletion(ctx, client, "test message", "gpt-4o")
+	_, err := botpkg.UserCompletion(ctx, client, "test message", "o3")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -109,7 +109,7 @@ func TestChatCompletionEmptyMessages(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestSystemCompletionEmptyPrompt(t *testing.T) {
 	client := emptyResponseClient{}
 	ctx := context.Background()
 
-	resp, err := botpkg.SystemCompletion(ctx, client, "", "gpt-4o")
+	resp, err := botpkg.SystemCompletion(ctx, client, "", "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestUserCompletionEmptyMessage(t *testing.T) {
 	client := emptyResponseClient{}
 	ctx := context.Background()
 
-	resp, err := botpkg.UserCompletion(ctx, client, "", "gpt-4o")
+	resp, err := botpkg.UserCompletion(ctx, client, "", "o3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
