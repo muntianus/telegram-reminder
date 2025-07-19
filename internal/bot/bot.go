@@ -61,6 +61,41 @@ const BlockchainTimeout = 10 * time.Second
 
 const Version = "0.1.0"
 
+// formatOpenAIError форматирует ошибку OpenAI для пользователя
+func formatOpenAIError(err error, model string) string {
+	errStr := err.Error()
+
+	// Определяем тип ошибки по содержимому
+	switch {
+	case strings.Contains(errStr, "insufficient_quota"):
+		return "❌ Недостаточно кредитов на аккаунте OpenAI\n💡 Пополните баланс на platform.openai.com"
+
+	case strings.Contains(errStr, "invalid_api_key"):
+		return "❌ Неверный API ключ OpenAI\n💡 Проверьте OPENAI_API_KEY в настройках"
+
+	case strings.Contains(errStr, "model_not_found"):
+		return fmt.Sprintf("❌ Модель %s недоступна\n💡 Попробуйте /model gpt-4o", model)
+
+	case strings.Contains(errStr, "rate_limit"):
+		return "⏳ Превышен лимит запросов\n💡 Подождите немного и попробуйте снова"
+
+	case strings.Contains(errStr, "timeout"):
+		return "⏰ Превышено время ожидания\n💡 Попробуйте позже или используйте другую модель"
+
+	case strings.Contains(errStr, "context deadline exceeded"):
+		return "⏰ Превышено время ожидания\n💡 Попробуйте позже или используйте другую модель"
+
+	case strings.Contains(errStr, "network"):
+		return "🌐 Проблемы с сетью\n💡 Проверьте подключение к интернету"
+
+	case strings.Contains(errStr, "unauthorized"):
+		return "🔐 Ошибка авторизации\n💡 Проверьте API ключ OpenAI"
+
+	default:
+		return fmt.Sprintf("❌ Ошибка OpenAI: %s\n💡 Попробуйте позже или используйте /model gpt-4o", errStr)
+	}
+}
+
 const CommandsList = `/chat <сообщение> – задать боту вопрос
 /ping – проверка состояния
 /start – добавить текущий чат в рассылку
@@ -212,8 +247,8 @@ func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
 			prompt := applyTemplate(tcopy.Prompt)
 			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 			if err != nil {
-				logger.L.Error("openai error", "err", err)
-				return c.Send("OpenAI error")
+				logger.L.Error("openai error", "task", tcopy.Name, "model", CurrentModel, "err", err)
+				return c.Send(formatOpenAIError(err, CurrentModel))
 			}
 			return c.Send(resp)
 		})
@@ -242,7 +277,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			prompt := applyTemplate(tcopy.Prompt)
 			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 			if err != nil {
-				logger.L.Error("openai error", "err", err)
+				logger.L.Error("openai error", "scheduled_task", tcopy.Name, "model", CurrentModel, "err", err)
+				// Для запланированных задач не отправляем сообщение пользователю, только логируем
 				return
 			}
 			text := resp
@@ -371,8 +407,8 @@ func handleTask(client *openai.Client) func(tb.Context) error {
 		prompt := applyTemplate(t.Prompt)
 		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "task", t.Name, "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -403,8 +439,8 @@ func handleLunch(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, LunchIdeaPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "command", "lunch", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -416,8 +452,8 @@ func handleBrief(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, DailyBriefPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "command", "brief", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -470,8 +506,8 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := UserCompletion(ctx, client, q, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "command", "chat", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		_, err = c.Bot().Send(c.Sender(), resp)
 		return err
@@ -485,8 +521,8 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, CryptoDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "crypto", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -498,8 +534,8 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, TechDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "tech", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -511,8 +547,8 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, RealEstateDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "realestate", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -524,8 +560,8 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, BusinessDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "business", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -537,8 +573,8 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, InvestmentDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "investment", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -550,8 +586,8 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, StartupDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "startup", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
@@ -563,8 +599,8 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 		defer cancel()
 		resp, err := SystemCompletion(ctx, client, GlobalDigestPrompt, CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "err", err)
-			return c.Send("OpenAI error")
+			logger.L.Error("openai error", "digest", "global", "model", CurrentModel, "err", err)
+			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
 		return c.Send(resp)
 	}
