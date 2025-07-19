@@ -437,7 +437,8 @@ func handleLunch(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, LunchIdeaPrompt, CurrentModel)
+		prompt := applyTemplate(LunchIdeaPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "command", "lunch", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -450,7 +451,8 @@ func handleBrief(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, DailyBriefPrompt, CurrentModel)
+		prompt := applyTemplate(DailyBriefPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "command", "brief", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -519,7 +521,8 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, CryptoDigestPrompt, CurrentModel)
+		prompt := applyTemplate(CryptoDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "crypto", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -532,7 +535,8 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, TechDigestPrompt, CurrentModel)
+		prompt := applyTemplate(TechDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "tech", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -545,7 +549,8 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, RealEstateDigestPrompt, CurrentModel)
+		prompt := applyTemplate(RealEstateDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "realestate", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -558,7 +563,8 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, BusinessDigestPrompt, CurrentModel)
+		prompt := applyTemplate(BusinessDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "business", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -571,7 +577,8 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, InvestmentDigestPrompt, CurrentModel)
+		prompt := applyTemplate(InvestmentDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "investment", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -584,7 +591,8 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, StartupDigestPrompt, CurrentModel)
+		prompt := applyTemplate(StartupDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "startup", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
@@ -597,7 +605,8 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := SystemCompletion(ctx, client, GlobalDigestPrompt, CurrentModel)
+		prompt := applyTemplate(GlobalDigestPrompt)
+		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "global", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
