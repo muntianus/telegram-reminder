@@ -1,15 +1,13 @@
 package main
 
 import (
-	"path/filepath"
 	"testing"
 
 	botpkg "telegram-reminder/internal/bot"
 )
 
 func TestWhitelistAddRemove(t *testing.T) {
-	dir := t.TempDir()
-	botpkg.WhitelistFile = filepath.Join(dir, "wl.json")
+	botpkg.ResetWhitelist()
 
 	if err := botpkg.AddIDToWhitelist(10); err != nil {
 		t.Fatalf("add id: %v", err)
