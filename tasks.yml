@@ -31,7 +31,6 @@ base_prompt: &base |
 tasks:
   - name: land_price
     time: "09:00"
-    model: gpt-4o
     prompt: |
       {base_prompt}
       Задача: Найди среднюю цену сотки в ближнем Подмосковье по состоянию на {date}.
@@ -40,21 +39,17 @@ tasks:
       Используй актуальные данные с сайтов недвижимости и аналитических агентств.
   - name: micro_noon
     time: "10:00"
-    model: gpt-4o
     prompt: *base
   - name: crypto_am
     time: "11:00"
-    model: gpt-4o
     prompt: |
       {CryptoDigestPrompt}
   - name: tech_digest
     time: "12:00"
-    model: gpt-4o
     prompt: |
       {TechDigestPrompt}
   - name: gis_lots
     time: "13:00"
-    model: gpt-4o
     prompt: |
       {base_prompt}
       Проверь новые лоты на ГИС‑Торги за сегодня: земельные участки сельхозназначения до 5 га в южном направлении Подмосковья.
@@ -62,11 +57,9 @@ tasks:
       Укажи цены и площадь участков.
   - name: micro_pm
     time: "14:00"
-    model: gpt-4o
     prompt: *base
   - name: mvp
     time: "15:00"
-    model: gpt-4o
     prompt: |
       💡 MVP ИДЕЯ НА СЕГОДНЯ ({date})
       Придумай идею самохостимого MVP, который можно быстро поднять на VPS.
@@ -74,32 +67,26 @@ tasks:
       Дай краткое описание, стек технологий и план реализации.
   - name: crypto_pm
     time: "16:00"
-    model: gpt-4o
     prompt: |
       {CryptoDigestPrompt}
   - name: business_digest
     time: "17:00"
-    model: gpt-4o
     prompt: |
       {BusinessDigestPrompt}
   - name: investment_digest
     time: "18:00"
-    model: gpt-4o
     prompt: |
       {InvestmentDigestPrompt}
   - name: startup_digest
     time: "19:00"
-    model: gpt-4o
     prompt: |
       {StartupDigestPrompt}
   - name: global_digest
     time: "19:30"
-    model: gpt-4o
     prompt: |
       {GlobalDigestPrompt}
   - name: biz_idea
     time: "20:00"
-    model: gpt-4o
     prompt: |
       🚀 БИЗНЕС-ИДЕЯ НА СЕГОДНЯ ({date})
       Подавай одну бизнес‑идею на основе сегодняшних трендов и событий.
@@ -108,7 +95,6 @@ tasks:
       Используй актуальную информацию из интернета.
   - name: bri_digest
     time: "20:30"
-    model: gpt-4o
     prompt: |
       🌍 BRI ДАЙДЖЕСТ НА СЕГОДНЯ ({date})
       Анализируй события в странах BRI (Китай, Россия, Индия, Бразилия, ЮАР и др.).
@@ -116,5 +102,4 @@ tasks:
       Используй актуальную информацию из интернета.
   - name: micro_night
     time: "21:00"
-    model: gpt-4o
     prompt: *base
