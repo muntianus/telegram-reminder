@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"telegram-reminder/internal/bot"
@@ -46,8 +47,14 @@ func TestChatCompletionSuccess(t *testing.T) {
 	if got != "hi" {
 		t.Errorf("got %q", got)
 	}
-	if len(received.Messages) == 0 || received.Messages[0].Content != "prompt" {
+	if len(received.Messages) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(received.Messages))
+	}
+	if received.Messages[0].Content != "prompt" {
 		t.Errorf("prompt not forwarded")
+	}
+	if !strings.HasPrefix(received.Messages[1].Content, "Current datetime: ") {
+		t.Errorf("datetime message missing: %v", received.Messages[1].Content)
 	}
 }
 
