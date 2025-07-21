@@ -2,7 +2,9 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -25,6 +27,13 @@ type ChatCompleter interface {
 //   - string: The generated response text, trimmed of whitespace
 //   - error: Any error that occurred during the API call
 func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage, model string) (string, error) {
+	// Append current date and time as a system message
+	timeMsg := openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: fmt.Sprintf("Current datetime: %s", time.Now().Format(time.RFC3339)),
+	}
+	msgs = append(msgs, timeMsg)
+
 	// Create base request
 	req := openai.ChatCompletionRequest{
 		Model:    model,
