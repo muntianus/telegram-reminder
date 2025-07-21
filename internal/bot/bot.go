@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"log/slog"
-
 	"telegram-reminder/internal/config"
 	"telegram-reminder/internal/logger"
 
@@ -610,67 +608,9 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 
 // Run initializes and starts the Telegram bot.
 func Run(cfg config.Config) error {
-	if cfg.OpenAIModel != "" {
-		CurrentModel = cfg.OpenAIModel
-	}
-
-	b, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
+	b, err := New(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to create bot: %w", err)
+		return err
 	}
-	log.Printf("Authorized as %s", b.Me.Username)
-
-	if cfg.LogChatID != 0 {
-		logger.EnableTelegramLogging(cfg.TelegramToken, cfg.LogChatID, slog.LevelDebug)
-	}
-
-	if cfg.ChatID != 0 {
-		if err := AddIDToWhitelist(cfg.ChatID); err != nil {
-			log.Printf("whitelist add: %v", err)
-		}
-	}
-
-	oaCfg := openai.DefaultConfig(cfg.OpenAIKey)
-	oaCfg.HTTPClient = &http.Client{Timeout: OpenAITimeout}
-	client := openai.NewClientWithConfig(oaCfg)
-
-	moscowTZ, err := time.LoadLocation("Europe/Moscow")
-	if err != nil {
-		return fmt.Errorf("failed to load timezone: %w", err)
-	}
-
-	scheduler := gocron.NewScheduler(moscowTZ)
-	ScheduleDailyMessages(scheduler, client, b, cfg.ChatID)
-	RegisterTaskCommands(b, client)
-
-	log.Println("Scheduler started. Sending briefs…")
-	scheduler.StartAsync()
-
-	TasksMu.RLock()
-	cmds := buildCommandsList(LoadedTasks)
-	TasksMu.RUnlock()
-	msg := fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, cmds)
-	SendStartupMessage(b, cfg.ChatID, msg)
-
-	b.Handle("/ping", handlePing)
-	b.Handle("/start", handleStart)
-	b.Handle("/whitelist", handleWhitelist)
-	b.Handle("/remove", handleRemove)
-	b.Handle("/tasks", handleTasks)
-	b.Handle("/task", handleTask(client))
-	b.Handle("/model", handleModel())
-	b.Handle("/lunch", handleLunch(client))
-	b.Handle("/brief", handleBrief(client))
-	b.Handle("/crypto", handleCryptoDigest(client))
-	b.Handle("/tech", handleTechDigest(client))
-	b.Handle("/realestate", handleRealEstateDigest(client))
-	b.Handle("/business", handleBusinessDigest(client))
-	b.Handle("/investment", handleInvestmentDigest(client))
-	b.Handle("/startup", handleStartupDigest(client))
-	b.Handle("/global", handleGlobalDigest(client))
-	b.Handle("/blockchain", handleBlockchain(cfg.BlockchainAPI))
-	b.Handle("/chat", handleChat(client))
-
-	b.Start()
-	return nil
+	return b.Start()
 }
