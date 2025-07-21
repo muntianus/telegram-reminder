@@ -111,6 +111,7 @@
 * Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
 * URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
 * Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`)
+* ID чата для логов (`LOG_CHAT_ID`, опционально)
 
 ## Добавление бота в каналы и группы
 
@@ -148,6 +149,7 @@ go run main.go
 
 - `TELEGRAM_TOKEN` – токен телеграм-бота
 - `CHAT_ID` – числовой ID чата назначения (опционально)
+- `LOG_CHAT_ID` – ID чата для отправки логов (опционально)
 - `OPENAI_API_KEY` – ключ API OpenAI
 - `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `o3`)
 - `LUNCH_TIME` – время для идей на обед
@@ -168,6 +170,7 @@ BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
 WHITELIST_FILE=whitelist.json
 BLOCKCHAIN_API=https://api.blockchain.info/stats
+LOG_CHAT_ID=123456789
 ```
 
 ```yaml

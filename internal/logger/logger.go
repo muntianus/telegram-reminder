@@ -44,3 +44,11 @@ func parseLevel(l string) slog.Level {
 		return slog.LevelInfo
 	}
 }
+
+// EnableTelegramLogging adds a Telegram handler to the global logger.
+func EnableTelegramLogging(token string, chatID int64, level slog.Level) {
+	mu.Lock()
+	defer mu.Unlock()
+	th := NewTelegramHandler(token, chatID, level)
+	L = slog.New(newMulti(L.Handler(), th))
+}

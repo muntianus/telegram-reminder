@@ -10,6 +10,7 @@ import (
 const (
 	EnvTelegramToken = "TELEGRAM_TOKEN"
 	EnvChatID        = "CHAT_ID"
+	EnvLogChatID     = "LOG_CHAT_ID"
 	EnvOpenAIKey     = "OPENAI_API_KEY"
 	EnvOpenAIModel   = "OPENAI_MODEL"
 	EnvBlockchainAPI = "BLOCKCHAIN_API"
@@ -21,6 +22,7 @@ const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
 type Config struct {
 	TelegramToken string
 	ChatID        int64
+	LogChatID     int64
 	OpenAIKey     string
 	OpenAIModel   string
 	BlockchainAPI string
@@ -32,6 +34,7 @@ func Load() (Config, error) {
 
 	telegramToken := os.Getenv(EnvTelegramToken)
 	chatIDStr := os.Getenv(EnvChatID)
+	logChatIDStr := os.Getenv(EnvLogChatID)
 	openaiKey := os.Getenv(EnvOpenAIKey)
 	openaiModel := os.Getenv(EnvOpenAIModel)
 	blockchainAPI := os.Getenv(EnvBlockchainAPI)
@@ -49,6 +52,15 @@ func Load() (Config, error) {
 		}
 	}
 
+	var logChatID int64
+	if logChatIDStr != "" {
+		var err error
+		logChatID, err = strconv.ParseInt(logChatIDStr, 10, 64)
+		if err != nil {
+			return cfg, fmt.Errorf("invalid LOG_CHAT_ID: %w", err)
+		}
+	}
+
 	if blockchainAPI == "" {
 		blockchainAPI = DefaultBlockchainAPI
 	}
@@ -56,6 +68,7 @@ func Load() (Config, error) {
 	cfg = Config{
 		TelegramToken: telegramToken,
 		ChatID:        chatID,
+		LogChatID:     logChatID,
 		OpenAIKey:     openaiKey,
 		OpenAIModel:   openaiModel,
 		BlockchainAPI: blockchainAPI,
