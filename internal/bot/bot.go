@@ -104,29 +104,45 @@ func formatOpenAIError(err error, model string) string {
 	}
 }
 
-const CommandsList = `/chat <сообщение> – задать боту вопрос
-/ping – проверка состояния
-/start – добавить текущий чат в рассылку
-/whitelist – показать список подключённых чатов
-/remove <id> – убрать чат из списка
-/model [имя] – показать или сменить модель (по умолчанию gpt-4o)
-/lunch – немедленно запросить идеи на обед
-/brief – немедленно запросить вечерний дайджест
-/crypto – криптовалютный дайджест
-/tech – технологический дайджест
-/realestate – дайджест недвижимости
-/business – бизнес-дайджест
-/investment – инвестиционный дайджест
-/startup – стартап-дайджест
-/global – глобальный дайджест
-/tasks – вывести текущее расписание задач
-/task [имя] – список задач или запуск выбранной
-/blockchain – метрики сети биткоина
+var baseCommands = []string{
+	"/chat <сообщение> – задать боту вопрос",
+	"/ping – проверка состояния",
+	"/start – добавить текущий чат в рассылку",
+	"/whitelist – показать список подключённых чатов",
+	"/remove <id> – убрать чат из списка",
+	"/model [имя] – показать или сменить модель (по умолчанию gpt-4o)",
+	"/lunch – немедленно запросить идеи на обед",
+	"/brief – немедленно запросить вечерний дайджест",
+	"/crypto – криптовалютный дайджест",
+	"/tech – технологический дайджест",
+	"/realestate – дайджест недвижимости",
+	"/business – бизнес-дайджест",
+	"/investment – инвестиционный дайджест",
+	"/startup – стартап-дайджест",
+	"/global – глобальный дайджест",
+	"/tasks – вывести текущее расписание задач",
+	"/task [имя] – список задач или запуск выбранной",
+	"/blockchain – метрики сети биткоина",
+}
 
-Команды задач (автоматически создаются из tasks.yml):
-/land_price, /micro_noon, /crypto_am, /gis_lots, /micro_pm, /mvp, /crypto_pm, /biz_idea, /bri_digest, /micro_night`
-
-var StartupMessage = fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, CommandsList)
+func buildCommandsList(tasks []Task) string {
+	var sb strings.Builder
+	for _, cmd := range baseCommands {
+		sb.WriteString(cmd)
+		sb.WriteByte('\n')
+	}
+	if len(tasks) > 0 {
+		sb.WriteString("\nКоманды задач (автоматически создаются из tasks.yml):\n")
+		names := []string{}
+		for _, t := range tasks {
+			if t.Name != "" {
+				names = append(names, "/"+t.Name)
+			}
+		}
+		sb.WriteString(strings.Join(names, ", "))
+	}
+	return sb.String()
+}
 
 const (
 	DefaultLunchTime = "13:00"
@@ -297,9 +313,9 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 }
 
 // SendStartupMessage notifies the chat that the bot is running.
-func SendStartupMessage(b *tb.Bot, chatID int64) {
+func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
 	if chatID != 0 {
-		if _, err := b.Send(tb.ChatID(chatID), StartupMessage); err != nil {
+		if _, err := b.Send(tb.ChatID(chatID), msg); err != nil {
 			logger.L.Error("telegram send", "err", err)
 		}
 		return
@@ -310,7 +326,7 @@ func SendStartupMessage(b *tb.Bot, chatID int64) {
 		return
 	}
 	for _, id := range ids {
-		if _, err := b.Send(tb.ChatID(id), StartupMessage); err != nil {
+		if _, err := b.Send(tb.ChatID(id), msg); err != nil {
 			logger.L.Error("telegram send", "err", err)
 		}
 	}
@@ -624,7 +640,11 @@ func Run(cfg config.Config) error {
 	log.Println("Scheduler started. Sending briefs…")
 	scheduler.StartAsync()
 
-	SendStartupMessage(b, cfg.ChatID)
+	TasksMu.RLock()
+	cmds := buildCommandsList(LoadedTasks)
+	TasksMu.RUnlock()
+	msg := fmt.Sprintf("Billion Roadmap %s\n\n%s", Version, cmds)
+	SendStartupMessage(b, cfg.ChatID, msg)
 
 	b.Handle("/ping", handlePing)
 	b.Handle("/start", handleStart)
