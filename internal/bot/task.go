@@ -40,33 +40,44 @@ func envDefault(key, def string) string {
 //   - []Task: Array of loaded tasks
 //   - string: Base prompt if found in file
 //   - error: Any error that occurred during file reading or parsing
-func readTasksFile(fn string) ([]Task, string, error) {
+func readTasksFile(fn string) ([]Task, string, string, error) {
 	data, err := os.ReadFile(fn)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	tasks := []Task{}
 	ext := strings.ToLower(filepath.Ext(fn))
 	var tf struct {
 		BasePrompt string `json:"base_prompt" yaml:"base_prompt"`
+		Model      string `json:"model" yaml:"model"`
 		Tasks      []Task `json:"tasks" yaml:"tasks"`
 	}
 	if ext == ".yaml" || ext == ".yml" {
 		if err := yaml.Unmarshal(data, &tf); err == nil && len(tf.Tasks) > 0 {
-			return tf.Tasks, tf.BasePrompt, nil
+			for i := range tf.Tasks {
+				if tf.Tasks[i].Model == "" {
+					tf.Tasks[i].Model = tf.Model
+				}
+			}
+			return tf.Tasks, tf.BasePrompt, tf.Model, nil
 		}
 		if err := yaml.Unmarshal(data, &tasks); err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 	} else {
 		if err := json.Unmarshal(data, &tf); err == nil && len(tf.Tasks) > 0 {
-			return tf.Tasks, tf.BasePrompt, nil
+			for i := range tf.Tasks {
+				if tf.Tasks[i].Model == "" {
+					tf.Tasks[i].Model = tf.Model
+				}
+			}
+			return tf.Tasks, tf.BasePrompt, tf.Model, nil
 		}
 		if err := json.Unmarshal(data, &tasks); err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 	}
-	return tasks, "", nil
+	return tasks, "", "", nil
 }
 
 // LoadTasks reads task configuration from multiple sources in order of priority:
@@ -80,12 +91,17 @@ func readTasksFile(fn string) ([]Task, string, error) {
 //   - error: Any error that occurred during loading
 func LoadTasks() ([]Task, error) {
 	if fn := os.Getenv("TASKS_FILE"); fn != "" {
-		tasks, bp, err := readTasksFile(fn)
+		tasks, bp, m, err := readTasksFile(fn)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 		if bp != "" {
 			BasePrompt = bp
+		}
+		if m != "" {
+			ModelMu.Lock()
+			CurrentModel = m
+			ModelMu.Unlock()
 		}
 		return tasks, nil
 	}
@@ -100,12 +116,17 @@ func LoadTasks() ([]Task, error) {
 
 	for _, fn := range []string{"tasks.yml", "tasks.yaml"} {
 		if _, err := os.Stat(fn); err == nil {
-			tasks, bp, err := readTasksFile(fn)
+			tasks, bp, m, err := readTasksFile(fn)
 			if err != nil {
 				return nil, err
 			}
 			if bp != "" {
 				BasePrompt = bp
+			}
+			if m != "" {
+				ModelMu.Lock()
+				CurrentModel = m
+				ModelMu.Unlock()
 			}
 			return tasks, nil
 		}

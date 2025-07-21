@@ -155,6 +155,7 @@ type Task struct {
 	Prompt string `json:"prompt" yaml:"prompt"`
 	Time   string `json:"time,omitempty" yaml:"time,omitempty"`
 	Cron   string `json:"cron,omitempty" yaml:"cron,omitempty"`
+	Model  string `json:"model,omitempty" yaml:"model,omitempty"`
 }
 
 var (
@@ -207,12 +208,13 @@ var (
 )
 
 // applyTemplate replaces placeholders in the prompt with runtime values.
-func applyTemplate(prompt string) string {
+func applyTemplate(prompt, model string) string {
 	vars := map[string]string{
 		"base_prompt":  BasePrompt,
 		"date":         time.Now().Format("2006-01-02"),
 		"exchange_api": os.Getenv("EXCHANGE_API"),
 		"chart_path":   os.Getenv("CHART_PATH"),
+		"model":        model,
 	}
 	for k, v := range vars {
 		prompt = strings.ReplaceAll(prompt, "{"+k+"}", v)
@@ -234,12 +236,15 @@ func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
 		b.Handle(cmd, func(c tb.Context) error {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
-
-			prompt := applyTemplate(tcopy.Prompt)
-			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+			model := CurrentModel
+			if tcopy.Model != "" {
+				model = tcopy.Model
+			}
+			prompt := applyTemplate(tcopy.Prompt, model)
+			resp, err := SystemCompletion(ctx, client, prompt, model)
 			if err != nil {
-				logger.L.Error("openai error", "task", tcopy.Name, "model", CurrentModel, "err", err)
-				return c.Send(formatOpenAIError(err, CurrentModel))
+				logger.L.Error("openai error", "task", tcopy.Name, "model", model, "err", err)
+				return c.Send(formatOpenAIError(err, model))
 			}
 			return c.Send(resp)
 		})
@@ -264,11 +269,16 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
 
+			model := CurrentModel
+			if tcopy.Model != "" {
+				model = tcopy.Model
+			}
+
 			log.Printf("running task: %s", tcopy.Name)
-			prompt := applyTemplate(tcopy.Prompt)
-			resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+			prompt := applyTemplate(tcopy.Prompt, model)
+			resp, err := SystemCompletion(ctx, client, prompt, model)
 			if err != nil {
-				logger.L.Error("openai error", "scheduled_task", tcopy.Name, "model", CurrentModel, "err", err)
+				logger.L.Error("openai error", "scheduled_task", tcopy.Name, "model", model, "err", err)
 				// Для запланированных задач не отправляем сообщение пользователю, только логируем
 				return
 			}
@@ -395,11 +405,15 @@ func handleTask(client *openai.Client) func(tb.Context) error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(t.Prompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		if t.Model != "" {
+			model = t.Model
+		}
+		prompt := applyTemplate(t.Prompt, model)
+		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "task", t.Name, "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "task", t.Name, "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -428,11 +442,12 @@ func handleLunch(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(LunchIdeaPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(LunchIdeaPrompt, model)
+		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "command", "lunch", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "command", "lunch", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -442,11 +457,12 @@ func handleBrief(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(DailyBriefPrompt)
-		resp, err := SystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(DailyBriefPrompt, model)
+		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "command", "brief", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "command", "brief", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -512,11 +528,12 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(CryptoDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(CryptoDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "crypto", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "crypto", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -526,11 +543,12 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(TechDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(TechDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "tech", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "tech", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -540,11 +558,12 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(RealEstateDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(RealEstateDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "realestate", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "realestate", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -554,11 +573,12 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(BusinessDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(BusinessDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "business", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "business", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -568,11 +588,12 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(InvestmentDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(InvestmentDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "investment", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "investment", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -582,11 +603,12 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(StartupDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(StartupDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "startup", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "startup", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
@@ -596,11 +618,12 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		prompt := applyTemplate(GlobalDigestPrompt)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, CurrentModel)
+		model := CurrentModel
+		prompt := applyTemplate(GlobalDigestPrompt, model)
+		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "digest", "global", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "digest", "global", "model", model, "err", err)
+			return c.Send(formatOpenAIError(err, model))
 		}
 		return c.Send(resp)
 	}
