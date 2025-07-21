@@ -9,6 +9,7 @@ import (
 func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv(config.EnvTelegramToken, "token")
 	t.Setenv(config.EnvChatID, "99")
+	t.Setenv(config.EnvLogChatID, "100")
 	t.Setenv(config.EnvOpenAIKey, "key")
 	t.Setenv(config.EnvOpenAIModel, "model")
 	t.Setenv(config.EnvBlockchainAPI, "http://example.com")
@@ -17,7 +18,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" || cfg.BlockchainAPI != "http://example.com" {
+	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.LogChatID != 100 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" || cfg.BlockchainAPI != "http://example.com" {
 		t.Fatalf("unexpected values: %+v", cfg)
 	}
 }
@@ -35,6 +36,7 @@ func TestLoadConfigMissing(t *testing.T) {
 func TestLoadConfigBadChatID(t *testing.T) {
 	t.Setenv(config.EnvTelegramToken, "token")
 	t.Setenv(config.EnvChatID, "bad")
+	t.Setenv(config.EnvLogChatID, "101")
 	t.Setenv(config.EnvOpenAIKey, "key")
 
 	_, err := config.Load()
@@ -46,6 +48,7 @@ func TestLoadConfigBadChatID(t *testing.T) {
 func TestLoadConfigNoChatID(t *testing.T) {
 	t.Setenv(config.EnvTelegramToken, "token")
 	t.Setenv(config.EnvChatID, "")
+	t.Setenv(config.EnvLogChatID, "")
 	t.Setenv(config.EnvOpenAIKey, "key")
 
 	cfg, err := config.Load()
@@ -54,5 +57,17 @@ func TestLoadConfigNoChatID(t *testing.T) {
 	}
 	if cfg.ChatID != 0 {
 		t.Fatalf("unexpected chat id: %d", cfg.ChatID)
+	}
+}
+
+func TestLoadConfigBadLogChatID(t *testing.T) {
+	t.Setenv(config.EnvTelegramToken, "token")
+	t.Setenv(config.EnvChatID, "123")
+	t.Setenv(config.EnvLogChatID, "bad")
+	t.Setenv(config.EnvOpenAIKey, "key")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }

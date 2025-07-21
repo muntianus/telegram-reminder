@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"log/slog"
+
 	"telegram-reminder/internal/config"
 	"telegram-reminder/internal/logger"
 
@@ -617,6 +619,10 @@ func Run(cfg config.Config) error {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
 	log.Printf("Authorized as %s", b.Me.Username)
+
+	if cfg.LogChatID != 0 {
+		logger.EnableTelegramLogging(cfg.TelegramToken, cfg.LogChatID, slog.LevelDebug)
+	}
 
 	if cfg.ChatID != 0 {
 		if err := AddIDToWhitelist(cfg.ChatID); err != nil {
