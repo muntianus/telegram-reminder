@@ -15,7 +15,7 @@ func TestSendStartupMessage(t *testing.T) {
 	}
 
 	// Test with specific chat ID
-	bot.SendStartupMessage(b, 42)
+	bot.SendStartupMessage(b, 42, "test")
 
 	// The test passes if no error occurs
 	// In offline mode, the bot won't actually send messages
