@@ -161,9 +161,10 @@ type Task struct {
 }
 
 var (
-	CurrentModel = "gpt-4o" // Модель по умолчанию с веб-поиском
-	ModelMu      sync.RWMutex
-	BasePrompt   string
+	CurrentModel    = "gpt-4o" // Модель по умолчанию с веб-поиском
+	ModelMu         sync.RWMutex
+	BasePrompt      string
+	EnableWebSearch bool
 	// SupportedModels contains all OpenAI model identifiers that support web search and tools
 	SupportedModels = []string{
 		// Models with web search and tools support
@@ -432,6 +433,16 @@ func handleModel() func(tb.Context) error {
 				"Current model: %s\nSupported: %s",
 				cur, strings.Join(SupportedModels, ", "),
 			))
+		}
+		valid := false
+		for _, m := range SupportedModels {
+			if payload == m {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return c.Send(fmt.Sprintf("Unsupported model: %s", payload))
 		}
 		ModelMu.Lock()
 		CurrentModel = payload

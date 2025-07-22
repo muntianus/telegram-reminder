@@ -44,6 +44,9 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		Model:    model,
 		Messages: msgs,
 	}
+	if EnableWebSearch && supportsWebSearch(model) {
+		req.Tools = []openai.Tool{webSearchTool}
+	}
 
 	// Add web search tool if the model supports it
 	for _, m := range SupportedModels {
