@@ -106,6 +106,7 @@ func formatOpenAIError(err error, model string) string {
 
 var baseCommands = []string{
 	"/chat <сообщение> – задать боту вопрос",
+	"/search <запрос> – выполнить поиск через OpenAI",
 	"/ping – проверка состояния",
 	"/start – добавить текущий чат в рассылку",
 	"/whitelist – показать список подключённых чатов",
@@ -354,10 +355,12 @@ func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
 // --- HANDLER FUNCTIONS ---
 
 func handlePing(c tb.Context) error {
+	logger.L.Debug("command ping", "chat", c.Chat().ID)
 	return c.Send("pong")
 }
 
 func handleStart(c tb.Context) error {
+	logger.L.Debug("command start", "chat", c.Chat().ID)
 	if err := AddIDToWhitelist(c.Chat().ID); err != nil {
 		log.Printf("whitelist add: %v", err)
 	}
@@ -365,6 +368,7 @@ func handleStart(c tb.Context) error {
 }
 
 func handleWhitelist(c tb.Context) error {
+	logger.L.Debug("command whitelist", "chat", c.Chat().ID)
 	ids, err := LoadWhitelist()
 	if err != nil {
 		log.Printf("load whitelist: %v", err)
@@ -377,6 +381,7 @@ func handleWhitelist(c tb.Context) error {
 }
 
 func handleRemove(c tb.Context) error {
+	logger.L.Debug("command remove", "chat", c.Chat().ID)
 	payload := strings.TrimSpace(c.Message().Payload)
 	if payload == "" {
 		return c.Send("Usage: /remove <id>")
@@ -393,6 +398,7 @@ func handleRemove(c tb.Context) error {
 }
 
 func handleTasks(c tb.Context) error {
+	logger.L.Debug("command tasks", "chat", c.Chat().ID)
 	TasksMu.RLock()
 	tasks := append([]Task(nil), LoadedTasks...)
 	TasksMu.RUnlock()
@@ -401,6 +407,7 @@ func handleTasks(c tb.Context) error {
 
 func handleTask(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command task", "chat", c.Chat().ID, "payload", c.Message().Payload)
 		name := strings.TrimSpace(c.Message().Payload)
 		TasksMu.RLock()
 		tasks := append([]Task(nil), LoadedTasks...)
@@ -430,6 +437,7 @@ func handleTask(client *openai.Client) func(tb.Context) error {
 
 func handleModel() func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command model", "chat", c.Chat().ID, "payload", c.Message().Payload)
 		payload := strings.TrimSpace(c.Message().Payload)
 		if payload == "" {
 			ModelMu.RLock()
@@ -459,6 +467,7 @@ func handleModel() func(tb.Context) error {
 
 func handleLunch(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command lunch", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -474,6 +483,7 @@ func handleLunch(client *openai.Client) func(tb.Context) error {
 
 func handleBrief(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command brief", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -489,6 +499,7 @@ func handleBrief(client *openai.Client) func(tb.Context) error {
 
 func handleBlockchain(apiURL string) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command blockchain", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), BlockchainTimeout)
 		defer cancel()
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
@@ -526,6 +537,7 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 
 func handleChat(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command chat", "chat", c.Chat().ID)
 		q := strings.TrimSpace(c.Message().Payload)
 		if q == "" {
 			return c.Send("Usage: /chat <message>")
@@ -542,9 +554,33 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 	}
 }
 
+func handleSearch() func(tb.Context) error {
+	return func(c tb.Context) error {
+		logger.L.Debug("command search", "chat", c.Chat().ID)
+		q := strings.TrimSpace(c.Message().Payload)
+		if q == "" {
+			return c.Send("Usage: /search <query>")
+		}
+		results, err := OpenAISearch(q)
+		if err != nil {
+			logger.L.Error("openai search", "err", err)
+			return c.Send("search error")
+		}
+		if len(results) == 0 {
+			return c.Send("no results")
+		}
+		var b strings.Builder
+		for i, r := range results {
+			fmt.Fprintf(&b, "%d. %s (%.2f)\n", i+1, r.Text, r.Score)
+		}
+		return c.Send(b.String())
+	}
+}
+
 // Обработчики для новых команд дайджестов
 func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command crypto", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -560,6 +596,7 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 
 func handleTechDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command tech", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -575,6 +612,7 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 
 func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command realestate", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -590,6 +628,7 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 
 func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command business", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -605,6 +644,7 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 
 func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command investment", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -620,6 +660,7 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 
 func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command startup", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel
@@ -635,6 +676,7 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 
 func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
+		logger.L.Debug("command global", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
 		model := CurrentModel

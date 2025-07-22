@@ -99,6 +99,7 @@ func (b *Bot) Start() error {
 	b.TeleBot.Handle("/global", handleGlobalDigest(b.Client))
 	b.TeleBot.Handle("/blockchain", handleBlockchain(b.Config.BlockchainAPI))
 	b.TeleBot.Handle("/chat", handleChat(b.Client))
+	b.TeleBot.Handle("/search", handleSearch())
 
 	b.TeleBot.Start()
 	return nil
