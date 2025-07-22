@@ -202,6 +202,16 @@ var (
 	}
 )
 
+// IsSupportedModel returns true if the given model is in the SupportedModels list.
+func IsSupportedModel(m string) bool {
+	for _, sm := range SupportedModels {
+		if sm == m {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	LoadedTasks []Task
 	TasksMu     sync.RWMutex
@@ -430,6 +440,9 @@ func handleModel() func(tb.Context) error {
 				"Current model: %s\nSupported: %s",
 				cur, strings.Join(SupportedModels, ", "),
 			))
+		}
+		if !IsSupportedModel(payload) {
+			return c.Send("unsupported model")
 		}
 		ModelMu.Lock()
 		CurrentModel = payload
