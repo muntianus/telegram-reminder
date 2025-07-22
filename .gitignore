@@ -25,3 +25,4 @@ Dockerfile*
 # Tools
 /bot
 telegram-reminder
+.DS_Store
