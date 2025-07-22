@@ -20,10 +20,40 @@ import (
 	tb "gopkg.in/telebot.v3"
 )
 
-// EnhancedSystemCompletion combines web search results with OpenAI completions
-func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt string, model string) (string, error) {
-	// Просто используем обычный SystemCompletion без веб-поиска
-	return SystemCompletion(ctx, client, prompt, model)
+// EnhancedSystemCompletion combines web search results with OpenAI completions.
+// It extracts search queries from the prompt, performs DuckDuckGo searches and
+// appends the found information to the prompt before sending it to OpenAI.
+func EnhancedSystemCompletion(ctx context.Context, client ChatCompleter, prompt string, model string) (string, error) {
+	queries := ExtractSearchQueries(prompt)
+	var sb strings.Builder
+	for _, q := range queries {
+		results, err := WebSearch(ctx, q)
+		if err != nil {
+			logger.L.Error("web search failed", "query", q, "err", err)
+			continue
+		}
+		if len(results) == 0 {
+			continue
+		}
+		sb.WriteString("🔍 ")
+		sb.WriteString(q)
+		sb.WriteByte('\n')
+		for _, r := range results {
+			sb.WriteString("• ")
+			sb.WriteString(r.Title)
+			if r.URL != "" {
+				sb.WriteString(" (")
+				sb.WriteString(r.URL)
+				sb.WriteString(")")
+			}
+			sb.WriteByte('\n')
+		}
+	}
+	fullPrompt := prompt
+	if sb.Len() > 0 {
+		fullPrompt = prompt + "\n\n" + sb.String()
+	}
+	return SystemCompletion(ctx, client, fullPrompt, model)
 }
 
 // Prompt templates
