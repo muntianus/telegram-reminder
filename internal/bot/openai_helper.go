@@ -9,7 +9,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-var webSearchTool = openai.Tool{Type: openai.ToolType("web_search")}
+var webSearchTool = openai.Tool{Type: openai.ToolType("web_search_preview")}
 
 func supportsWebSearch(model string) bool {
 	for _, m := range SupportedModels {
