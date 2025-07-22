@@ -260,6 +260,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 		return
 	}
 
+	logger.L.Debug("loaded tasks", "count", len(tasks))
+
 	TasksMu.Lock()
 	LoadedTasks = tasks
 	TasksMu.Unlock()
@@ -274,6 +276,8 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			if tcopy.Model != "" {
 				model = tcopy.Model
 			}
+
+			logger.L.Debug("run task", "name", tcopy.Name, "model", model)
 
 			log.Printf("running task: %s", tcopy.Name)
 			prompt := applyTemplate(tcopy.Prompt, model)
@@ -297,6 +301,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 				logger.L.Error("load whitelist", "err", err)
 				return
 			}
+			logger.L.Debug("broadcast startup", "recipients", len(ids))
 			for _, id := range ids {
 				if _, err := b.Send(tb.ChatID(id), text); err != nil {
 					log.Printf("telegram send error: %v", err)
@@ -309,12 +314,14 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 		var jerr error
 		switch {
 		case t.Cron != "":
+			logger.L.Debug("schedule cron", "name", t.Name, "cron", t.Cron)
 			_, jerr = s.Cron(t.Cron).Do(job)
 		default:
 			timeStr := t.Time
 			if timeStr == "" {
 				timeStr = "00:00"
 			}
+			logger.L.Debug("schedule daily", "name", t.Name, "time", timeStr)
 			_, jerr = s.Every(1).Day().At(timeStr).Do(job)
 		}
 		if jerr != nil {
@@ -325,6 +332,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 
 // SendStartupMessage notifies the chat that the bot is running.
 func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
+	logger.L.Debug("send startup message", "chat_id", chatID)
 	if chatID != 0 {
 		if _, err := b.Send(tb.ChatID(chatID), msg); err != nil {
 			logger.L.Error("telegram send", "err", err)

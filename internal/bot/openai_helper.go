@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"telegram-reminder/internal/logger"
+
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -92,6 +94,7 @@ type ChatCompleter interface {
 //   - string: The generated response text, trimmed of whitespace
 //   - error: Any error that occurred during the API call
 func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage, model string) (string, error) {
+	logger.L.Debug("chat completion", "model", model, "messages", len(msgs))
 	// Append current date and time as a system message
 	timeMsg := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
@@ -125,8 +128,10 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 
 	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
+		logger.L.Debug("openai error", "err", err)
 		return "", err
 	}
+	logger.L.Debug("openai response", "choices", len(resp.Choices))
 	if len(resp.Choices) == 0 {
 		return "", nil
 	}
@@ -164,7 +169,9 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 			break
 		}
 	}
-	return strings.TrimSpace(msg.Content), nil
+	out := strings.TrimSpace(msg.Content)
+	logger.L.Debug("openai result", "length", len(out))
+	return out, nil
 }
 
 // SystemCompletion generates a reply to a system-level prompt using OpenAI.
