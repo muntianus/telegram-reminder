@@ -40,6 +40,16 @@ func TestModelCommand(t *testing.T) {
 				cur, strings.Join(botpkg.SupportedModels, ", "),
 			))
 		}
+		valid := false
+		for _, m := range botpkg.SupportedModels {
+			if payload == m {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return c.Send(fmt.Sprintf("Unsupported model: %s", payload))
+		}
 		botpkg.ModelMu.Lock()
 		botpkg.CurrentModel = payload
 		botpkg.ModelMu.Unlock()
@@ -58,18 +68,26 @@ func TestModelCommand(t *testing.T) {
 		t.Errorf("unexpected response: %v", ctx.sent)
 	}
 
-	ctx2 := &modelFakeCtx{msg: &tb.Message{Payload: "gpt-3"}}
+	ctx2 := &modelFakeCtx{msg: &tb.Message{Payload: "gpt-4o"}}
 	if err := bot.Trigger("/model", ctx2); err != nil {
 		t.Fatalf("trigger with arg: %v", err)
 	}
-	if ctx2.sent != "Model set to gpt-3" {
+	if ctx2.sent != "Model set to gpt-4o" {
 		t.Errorf("unexpected response: %v", ctx2.sent)
+	}
+
+	invalid := &modelFakeCtx{msg: &tb.Message{Payload: "bad"}}
+	if err := bot.Trigger("/model", invalid); err != nil {
+		t.Fatalf("trigger invalid: %v", err)
+	}
+	if invalid.sent != "Unsupported model: bad" {
+		t.Errorf("unexpected invalid response: %v", invalid.sent)
 	}
 
 	botpkg.ModelMu.RLock()
 	got := botpkg.CurrentModel
 	botpkg.ModelMu.RUnlock()
-	if got != "gpt-3" {
+	if got != "gpt-4o" {
 		t.Errorf("currentModel not updated: %s", got)
 	}
 
@@ -77,7 +95,7 @@ func TestModelCommand(t *testing.T) {
 	if err := bot.Trigger("/model", ctx3); err != nil {
 		t.Fatalf("trigger query after set: %v", err)
 	}
-	if ctx3.sent != fmt.Sprintf("Current model: gpt-3\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
+	if ctx3.sent != fmt.Sprintf("Current model: gpt-4o\nSupported: %s", strings.Join(botpkg.SupportedModels, ", ")) {
 		t.Errorf("unexpected response: %v", ctx3.sent)
 	}
 }

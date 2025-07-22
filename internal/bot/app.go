@@ -28,6 +28,7 @@ func New(cfg config.Config) (*Bot, error) {
 	if cfg.OpenAIModel != "" {
 		CurrentModel = cfg.OpenAIModel
 	}
+	EnableWebSearch = cfg.EnableWebSearch
 
 	tele, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
 	if err != nil {
