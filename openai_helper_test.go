@@ -35,6 +35,17 @@ func (w whitespaceClient) CreateChatCompletion(ctx context.Context, req openai.C
 	}, nil
 }
 
+// captureClient records the request sent to CreateChatCompletion
+// so tests can inspect the parameters.
+type captureClient struct{ received openai.ChatCompletionRequest }
+
+func (c *captureClient) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+	c.received = req
+	return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{
+		{Message: openai.ChatCompletionMessage{Content: "ok"}},
+	}}, nil
+}
+
 func TestChatCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
@@ -141,5 +152,34 @@ func TestUserCompletionEmptyMessage(t *testing.T) {
 	}
 	if resp != "" {
 		t.Errorf("expected empty response for empty message, got: %q", resp)
+	}
+}
+
+func TestChatCompletionAddsWebSearchTool(t *testing.T) {
+	c := &captureClient{}
+	ctx := context.Background()
+	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
+
+	if _, err := botpkg.ChatCompletion(ctx, c, msgs, "gpt-4o"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(c.received.Tools) != 1 {
+		t.Fatalf("expected 1 tool, got %d", len(c.received.Tools))
+	}
+	if c.received.Tools[0].Type != openai.ToolType("web_search") {
+		t.Errorf("expected web_search tool, got %v", c.received.Tools[0].Type)
+	}
+}
+
+func TestChatCompletionNoWebSearchForUnsupportedModel(t *testing.T) {
+	c := &captureClient{}
+	ctx := context.Background()
+	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
+
+	if _, err := botpkg.ChatCompletion(ctx, c, msgs, "gpt-3.5-turbo"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(c.received.Tools) != 0 {
+		t.Fatalf("expected no tools, got %d", len(c.received.Tools))
 	}
 }

@@ -9,6 +9,11 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
+// WebSearch is the built-in OpenAI tool for internet search.
+// The go-openai library used in this project does not yet expose
+// the constant for this tool type, so we define it ourselves.
+var WebSearch = openai.Tool{Type: openai.ToolType("web_search")}
+
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
 // This interface allows for easier testing and mocking of OpenAI API calls.
 type ChatCompleter interface {
@@ -38,6 +43,14 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	req := openai.ChatCompletionRequest{
 		Model:    model,
 		Messages: msgs,
+	}
+
+	// Add web search tool if the model supports it
+	for _, m := range SupportedModels {
+		if m == model {
+			req.Tools = []openai.Tool{WebSearch}
+			break
+		}
 	}
 
 	// Configure parameters based on model type

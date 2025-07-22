@@ -22,8 +22,10 @@ import (
 
 // EnhancedSystemCompletion combines web search results with OpenAI completions
 func EnhancedSystemCompletion(ctx context.Context, client *openai.Client, prompt string, model string) (string, error) {
-	// Просто используем обычный SystemCompletion без веб-поиска
-	return SystemCompletion(ctx, client, prompt, model)
+	msgs := []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: prompt},
+	}
+	return ChatCompletion(ctx, client, msgs, model)
 }
 
 // Prompt templates
