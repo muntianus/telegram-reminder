@@ -50,7 +50,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		data, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))

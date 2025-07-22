@@ -65,7 +65,7 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= http.StatusBadRequest {
 		return "", fmt.Errorf("search http %s", resp.Status)
 	}
@@ -138,6 +138,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 
 	msg := resp.Choices[0].Message
 	if EnableWebSearch && len(msg.ToolCalls) > 0 {
+		toolMsgs := make([]openai.ChatCompletionMessage, 0, len(msg.ToolCalls))
 		for _, tc := range msg.ToolCalls {
 			if tc.Type != openai.ToolTypeFunction || tc.Function.Name != "web_search" {
 				continue
@@ -152,11 +153,15 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 			if err != nil {
 				res = err.Error()
 			}
-			msgs = append(msgs, msg, openai.ChatCompletionMessage{
+			toolMsgs = append(toolMsgs, openai.ChatCompletionMessage{
 				Role:       openai.ChatMessageRoleTool,
 				ToolCallID: tc.ID,
 				Content:    res,
 			})
+		}
+		if len(toolMsgs) > 0 {
+			msgs = append(msgs, msg)
+			msgs = append(msgs, toolMsgs...)
 			req.Messages = msgs
 			resp, err = client.CreateChatCompletion(ctx, req)
 			if err != nil {
@@ -166,7 +171,6 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 				return "", nil
 			}
 			msg = resp.Choices[0].Message
-			break
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
