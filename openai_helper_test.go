@@ -35,6 +35,16 @@ func (w whitespaceClient) CreateChatCompletion(ctx context.Context, req openai.C
 	}, nil
 }
 
+// captureClient stores the last request passed to CreateChatCompletion
+type captureClient struct {
+	req openai.ChatCompletionRequest
+}
+
+func (c *captureClient) CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+	c.req = req
+	return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{{Message: openai.ChatCompletionMessage{Content: "ok"}}}}, nil
+}
+
 func TestChatCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
@@ -141,5 +151,52 @@ func TestUserCompletionEmptyMessage(t *testing.T) {
 	}
 	if resp != "" {
 		t.Errorf("expected empty response for empty message, got: %q", resp)
+	}
+}
+
+func TestWebSearchToolAdded(t *testing.T) {
+	orig := botpkg.EnableWebSearch
+	botpkg.EnableWebSearch = true
+	defer func() { botpkg.EnableWebSearch = orig }()
+	client := &captureClient{}
+	ctx := context.Background()
+	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
+
+	if _, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(client.req.Tools) == 0 || client.req.Tools[0].Type != openai.ToolType("web_search") {
+		t.Fatalf("web search tool not added")
+	}
+}
+
+func TestWebSearchToolNotAddedForUnsupportedModel(t *testing.T) {
+	orig := botpkg.EnableWebSearch
+	botpkg.EnableWebSearch = true
+	defer func() { botpkg.EnableWebSearch = orig }()
+	client := &captureClient{}
+	ctx := context.Background()
+	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
+
+	if _, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-3.5"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(client.req.Tools) != 0 {
+		t.Fatalf("unexpected tools: %+v", client.req.Tools)
+	}
+}
+
+func TestEnhancedSystemCompletionUsesWebSearch(t *testing.T) {
+	orig := botpkg.EnableWebSearch
+	botpkg.EnableWebSearch = true
+	defer func() { botpkg.EnableWebSearch = orig }()
+	client := &captureClient{}
+	ctx := context.Background()
+	_, err := botpkg.EnhancedSystemCompletion(ctx, client, "prompt", "gpt-4o")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(client.req.Tools) == 0 {
+		t.Fatalf("tools not added in enhanced completion")
 	}
 }
