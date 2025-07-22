@@ -2,7 +2,11 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -27,6 +31,14 @@ var webSearchTool = openai.Tool{
 	},
 }
 
+// SearchProviderURL is the template URL for performing web searches. It is set
+// from configuration at startup.
+var SearchProviderURL string
+
+// searchFunc performs a web search and returns plain text results. It can be
+// overridden in tests.
+var searchFunc = defaultWebSearch
+
 func supportsWebSearch(model string) bool {
 	for _, m := range SupportedModels {
 		if model == m {
@@ -34,6 +46,32 @@ func supportsWebSearch(model string) bool {
 		}
 	}
 	return false
+}
+
+// defaultWebSearch queries SearchProviderURL using GET and returns the body as a
+// string. It limits the response to 2000 bytes.
+func defaultWebSearch(ctx context.Context, query string) (string, error) {
+	if SearchProviderURL == "" {
+		return "", fmt.Errorf("search provider not configured")
+	}
+	u := fmt.Sprintf(SearchProviderURL, url.QueryEscape(query))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return "", fmt.Errorf("search http %s", resp.Status)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 2000))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
@@ -92,7 +130,41 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	if len(resp.Choices) == 0 {
 		return "", nil
 	}
-	return strings.TrimSpace(resp.Choices[0].Message.Content), nil
+
+	msg := resp.Choices[0].Message
+	if EnableWebSearch && len(msg.ToolCalls) > 0 {
+		for _, tc := range msg.ToolCalls {
+			if tc.Type != openai.ToolTypeFunction || tc.Function.Name != "web_search" {
+				continue
+			}
+			var p struct {
+				Query string `json:"query"`
+			}
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &p); err != nil {
+				continue
+			}
+			res, err := searchFunc(ctx, p.Query)
+			if err != nil {
+				res = err.Error()
+			}
+			msgs = append(msgs, msg, openai.ChatCompletionMessage{
+				Role:       openai.ChatMessageRoleTool,
+				ToolCallID: tc.ID,
+				Content:    res,
+			})
+			req.Messages = msgs
+			resp, err = client.CreateChatCompletion(ctx, req)
+			if err != nil {
+				return "", err
+			}
+			if len(resp.Choices) == 0 {
+				return "", nil
+			}
+			msg = resp.Choices[0].Message
+			break
+		}
+	}
+	return strings.TrimSpace(msg.Content), nil
 }
 
 // SystemCompletion generates a reply to a system-level prompt using OpenAI.
