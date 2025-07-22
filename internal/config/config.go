@@ -73,7 +73,10 @@ func Load() (Config, error) {
 		blockchainAPI = DefaultBlockchainAPI
 	}
 
-	enableWebSearch := enableWebSearchStr == "1" || strings.ToLower(enableWebSearchStr) == "true"
+	enableWebSearch := true
+	if enableWebSearchStr != "" {
+		enableWebSearch = enableWebSearchStr == "1" || strings.ToLower(enableWebSearchStr) == "true"
+	}
 
 	if searchProviderURL == "" {
 		searchProviderURL = DefaultSearchProviderURL

@@ -84,8 +84,8 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.EnableWebSearch {
-		t.Fatalf("expected web search disabled by default")
+	if !cfg.EnableWebSearch {
+		t.Fatalf("expected web search enabled by default")
 	}
 	if cfg.SearchProviderURL == "" {
 		t.Fatalf("expected default search provider URL set")
