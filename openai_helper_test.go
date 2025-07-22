@@ -165,8 +165,14 @@ func TestWebSearchToolAdded(t *testing.T) {
 	if _, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(client.req.Tools) == 0 || client.req.Tools[0].Type != openai.ToolType("web_search_preview") {
+	if len(client.req.Tools) == 0 {
 		t.Fatalf("web search tool not added")
+	}
+	if client.req.Tools[0].Type != openai.ToolTypeFunction {
+		t.Fatalf("unexpected tool type: %v", client.req.Tools[0].Type)
+	}
+	if client.req.Tools[0].Function == nil || client.req.Tools[0].Function.Name != "web_search" {
+		t.Fatalf("missing web_search function definition")
 	}
 }
 

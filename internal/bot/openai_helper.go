@@ -9,7 +9,23 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-var webSearchTool = openai.Tool{Type: openai.ToolType("web_search_preview")}
+var webSearchTool = openai.Tool{
+	Type: openai.ToolTypeFunction,
+	Function: &openai.FunctionDefinition{
+		Name:        "web_search",
+		Description: "Search the web for a query and return top results",
+		Parameters: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"query": map[string]any{
+					"type":        "string",
+					"description": "Search query text",
+				},
+			},
+			"required": []string{"query"},
+		},
+	},
+}
 
 func supportsWebSearch(model string) bool {
 	for _, m := range SupportedModels {
