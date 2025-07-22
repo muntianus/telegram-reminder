@@ -294,6 +294,50 @@ BRIEF_TIME=20:00
 
 На Ubuntu VPS логи сервиса, запущенного через `systemd`, можно смотреть командой `journalctl -u telegram-reminder -f`. Если бот работает в Docker, используйте `docker logs -f telegram-reminder`.
 
+## Использование built-in tools
+
+Модели серии `gpt-4.1` поддерживают вызов встроенных инструментов через API `responses`.
+Пример использования с веб‑поиском:
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client.responses.create({
+    model: "gpt-4.1",
+    tools: [{ type: "web_search_preview" }],
+    input: "What was a positive news story from today?",
+});
+
+console.log(response.output_text);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+response = client.responses.create(
+    model="gpt-4.1",
+    tools=[{"type": "web_search_preview"}],
+    input="What was a positive news story from today?"
+)
+
+print(response.output_text)
+```
+
+```bash
+curl "https://api.openai.com/v1/responses" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "tools": [{"type": "web_search_preview"}],
+        "input": "what was a positive news story from today?"
+    }'
+```
+
+Инструмент `web_search_preview` позволяет модели получать свежие данные из интернета.
+
 ## Лицензия
 
 Проект распространяется на условиях [MIT License](LICENSE).
