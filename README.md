@@ -110,6 +110,8 @@
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
 * Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
 * URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
+* Включить веб-поиск (`ENABLE_WEB_SEARCH`, опционально, по умолчанию `false`)
+* URL поискового провайдера (`SEARCH_PROVIDER_URL`, опционально, по умолчанию `https://api.duckduckgo.com`)
 * Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`)
 * ID чата для логов (`LOG_CHAT_ID`, опционально)
 
@@ -157,6 +159,8 @@ go run main.go
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
 - `WHITELIST_FILE` – путь к файлу со списком чатов (по умолчанию `whitelist.json`)
 - `BLOCKCHAIN_API` – URL API блокчейна для команды `/blockchain`
+- `ENABLE_WEB_SEARCH` – включить веб-поиск (по умолчанию `false`)
+- `SEARCH_PROVIDER_URL` – URL поискового провайдера (по умолчанию `https://api.duckduckgo.com`)
 - `LOG_LEVEL` – уровень логирования (`debug`, `info`, `warn` или `error`)
 
 Пример `.env` и `tasks.yml`:
@@ -170,6 +174,8 @@ BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
 WHITELIST_FILE=whitelist.json
 BLOCKCHAIN_API=https://api.blockchain.info/stats
+ENABLE_WEB_SEARCH=false
+SEARCH_PROVIDER_URL=https://api.duckduckgo.com
 LOG_CHAT_ID=123456789
 ```
 
@@ -280,6 +286,8 @@ BRIEF_TIME=20:00
 # CHAT_ID=123456789
 # WHITELIST_FILE=whitelist.json
 # BLOCKCHAIN_API=https://api.blockchain.info/stats
+# ENABLE_WEB_SEARCH=false
+# SEARCH_PROVIDER_URL=https://api.duckduckgo.com
 ```
 
 Если контейнер не стартует, проверьте логи командой `docker logs <container>`, чтобы увидеть сообщения об ошибках.
