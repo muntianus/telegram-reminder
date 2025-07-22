@@ -61,7 +61,7 @@ func OpenAISearch(query string) ([]SearchResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp openai.ErrorResponse
