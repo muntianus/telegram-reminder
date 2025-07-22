@@ -45,6 +45,7 @@ func readTasksFile(fn string) ([]Task, string, string, error) {
 	if err != nil {
 		return nil, "", "", err
 	}
+	logger.L.Debug("read tasks file", "file", fn)
 	tasks := []Task{}
 	ext := strings.ToLower(filepath.Ext(fn))
 	var tf struct {
@@ -91,6 +92,7 @@ func readTasksFile(fn string) ([]Task, string, string, error) {
 //   - error: Any error that occurred during loading
 func LoadTasks() ([]Task, error) {
 	if fn := os.Getenv("TASKS_FILE"); fn != "" {
+		logger.L.Debug("load tasks from file", "file", fn)
 		tasks, bp, m, err := readTasksFile(fn)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
@@ -107,6 +109,7 @@ func LoadTasks() ([]Task, error) {
 	}
 
 	if txt := os.Getenv("TASKS_JSON"); txt != "" {
+		logger.L.Debug("load tasks from json env")
 		tasks := []Task{}
 		if err := json.Unmarshal([]byte(txt), &tasks); err != nil {
 			return nil, err
@@ -116,6 +119,7 @@ func LoadTasks() ([]Task, error) {
 
 	for _, fn := range []string{"tasks.yml", "tasks.yaml"} {
 		if _, err := os.Stat(fn); err == nil {
+			logger.L.Debug("load tasks from local", "file", fn)
 			tasks, bp, m, err := readTasksFile(fn)
 			if err != nil {
 				return nil, err
@@ -133,6 +137,7 @@ func LoadTasks() ([]Task, error) {
 	}
 
 	logger.L.Info("tasks.yml not found; using default tasks")
+	logger.L.Debug("using default times", "lunch", envDefault("LUNCH_TIME", DefaultLunchTime), "brief", envDefault("BRIEF_TIME", DefaultBriefTime))
 
 	lunchTime := envDefault("LUNCH_TIME", DefaultLunchTime)
 	briefTime := envDefault("BRIEF_TIME", DefaultBriefTime)

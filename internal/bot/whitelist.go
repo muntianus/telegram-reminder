@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"telegram-reminder/internal/logger"
 )
 
 var (
@@ -27,11 +29,13 @@ func AddIDToWhitelist(id int64) error {
 	for _, v := range whitelistID {
 		if v == id {
 			wlMu.Unlock()
+			logger.L.Debug("whitelist exists", "id", id)
 			return nil
 		}
 	}
 	whitelistID = append(whitelistID, id)
 	wlMu.Unlock()
+	logger.L.Debug("whitelist add", "id", id)
 	return nil
 }
 
@@ -47,6 +51,7 @@ func RemoveIDFromWhitelist(id int64) error {
 	}
 	whitelistID = out
 	wlMu.Unlock()
+	logger.L.Debug("whitelist remove", "id", id)
 	return nil
 }
 
