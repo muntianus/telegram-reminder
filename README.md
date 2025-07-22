@@ -48,6 +48,7 @@
 
 ### Основные команды
 - `/chat <сообщение>` – задать боту вопрос и получить ответ от OpenAI.
+- `/search <запрос>` – выполнить поиск через OpenAI Search API.
 - `/ping` – проверка состояния, в ответ приходит `pong`.
 - `/start` – добавить текущий чат в рассылку.
 - `/whitelist` – показать список подключённых чатов.
@@ -130,6 +131,8 @@ export TELEGRAM_TOKEN=your_telegram_token
 export OPENAI_API_KEY=your_openai_key
 export LUNCH_TIME=13:00
 export BRIEF_TIME=20:00
+export LOG_LEVEL=debug
+# логирование всех вызовов в режиме debug
 
 # опционально задайте начальный чат
 # export CHAT_ID=123456789

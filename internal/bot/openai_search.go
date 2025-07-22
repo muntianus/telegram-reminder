@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"time"
 
+	"telegram-reminder/internal/logger"
+
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -33,6 +35,7 @@ type searchResponse struct {
 
 // OpenAISearch queries the OpenAI Search API and returns ranked documents.
 func OpenAISearch(query string) ([]SearchResult, error) {
+	logger.L.Debug("openai search", "query", query)
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return nil, errors.New("OPENAI_API_KEY not set")
@@ -59,6 +62,7 @@ func OpenAISearch(query string) ([]SearchResult, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		logger.L.Debug("openai search error", "err", err)
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -71,16 +75,19 @@ func OpenAISearch(query string) ([]SearchResult, error) {
 			errResp.Error.HTTPStatusCode = resp.StatusCode
 			return nil, errResp.Error
 		}
-		return nil, &openai.RequestError{
+		err := &openai.RequestError{
 			HTTPStatus:     resp.Status,
 			HTTPStatusCode: resp.StatusCode,
 			Err:            fmt.Errorf("unexpected status"),
 			Body:           b,
 		}
+		logger.L.Debug("openai search status", "status", resp.Status)
+		return nil, err
 	}
 
 	var sr searchResponse
 	if err := json.NewDecoder(resp.Body).Decode(&sr); err != nil {
+		logger.L.Debug("openai search decode", "err", err)
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
@@ -92,5 +99,6 @@ func OpenAISearch(query string) ([]SearchResult, error) {
 			Text:     d.Text,
 		}
 	}
+	logger.L.Debug("openai search results", "count", len(results))
 	return results, nil
 }

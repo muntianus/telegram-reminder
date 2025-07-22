@@ -53,6 +53,7 @@ func supportsWebSearch(model string) bool {
 // defaultWebSearch queries SearchProviderURL using GET and returns the body as a
 // string. It limits the response to 2000 bytes.
 func defaultWebSearch(ctx context.Context, query string) (string, error) {
+	logger.L.Debug("web search", "query", query)
 	if SearchProviderURL == "" {
 		return "", fmt.Errorf("search provider not configured")
 	}
@@ -63,17 +64,23 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		logger.L.Debug("web search error", "err", err)
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= http.StatusBadRequest {
-		return "", fmt.Errorf("search http %s", resp.Status)
+		err := fmt.Errorf("search http %s", resp.Status)
+		logger.L.Debug("web search status", "status", resp.Status)
+		return "", err
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2000))
 	if err != nil {
+		logger.L.Debug("web search read", "err", err)
 		return "", err
 	}
-	return string(data), nil
+	res := string(data)
+	logger.L.Debug("web search result", "bytes", len(res))
+	return res, nil
 }
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.

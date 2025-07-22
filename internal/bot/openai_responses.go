@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"telegram-reminder/internal/logger"
 )
 
 // ResponsesEndpoint defines the OpenAI API endpoint for responses. Tests can override it.
@@ -31,6 +33,7 @@ type responseResult struct {
 
 // callResponsesAPI performs a request to the given responses endpoint.
 func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseRequest, endpoint string) (string, error) {
+	logger.L.Debug("responses api", "model", reqBody.Model)
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", err
@@ -48,18 +51,24 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 	client := &http.Client{Timeout: OpenAITimeout}
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		logger.L.Debug("responses api error", "err", err)
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		data, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+		logger.L.Debug("responses api status", "status", resp.Status)
+		return "", err
 	}
 	var res responseResult
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		logger.L.Debug("responses api decode", "err", err)
 		return "", err
 	}
-	return strings.TrimSpace(res.OutputText), nil
+	out := strings.TrimSpace(res.OutputText)
+	logger.L.Debug("responses api result", "bytes", len(out))
+	return out, nil
 }
 
 // ResponsesCompletion sends input to the OpenAI responses API and returns output text.
