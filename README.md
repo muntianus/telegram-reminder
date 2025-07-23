@@ -157,6 +157,7 @@ go run main.go
 - `LOG_CHAT_ID` – ID чата для отправки логов (опционально)
 - `OPENAI_API_KEY` – ключ API OpenAI
 - `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `o3`)
+- `OPENAI_MODEL_SEARCH` – модель для веб-поиска (опционально, по умолчанию `gpt-4o-mini`)
 - `LUNCH_TIME` – время для идей на обед
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
@@ -172,6 +173,7 @@ go run main.go
 TELEGRAM_TOKEN=123456:ABC-DEF
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=o3
+OPENAI_MODEL_SEARCH=gpt-4o-mini
 LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
