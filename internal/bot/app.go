@@ -8,6 +8,7 @@ import (
 
 	"telegram-reminder/internal/config"
 	"telegram-reminder/internal/logger"
+	openaiclient "telegram-reminder/internal/openai"
 
 	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"
@@ -19,6 +20,7 @@ type Bot struct {
 	Config    config.Config
 	TeleBot   *tb.Bot
 	Client    *openai.Client
+	OpenAI    *openaiclient.Client
 	Scheduler *gocron.Scheduler
 }
 
@@ -39,6 +41,12 @@ func New(cfg config.Config) (*Bot, error) {
 	oaCfg.HTTPClient = logger.NewHTTPClient(OpenAITimeout)
 	client := openai.NewClientWithConfig(oaCfg)
 
+	oa2 := openaiclient.New(openaiclient.Config{
+		APIKey:      cfg.OpenAIKey,
+		ModelDigest: cfg.OpenAIModel,
+		ModelSearch: cfg.OpenAIModelSearch,
+	})
+
 	tz, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load timezone: %w", err)
@@ -50,6 +58,7 @@ func New(cfg config.Config) (*Bot, error) {
 		Config:    cfg,
 		TeleBot:   tele,
 		Client:    client,
+		OpenAI:    oa2,
 		Scheduler: sched,
 	}
 	return b, nil
@@ -98,7 +107,7 @@ func (b *Bot) Start() error {
 	b.TeleBot.Handle("/global", handleGlobalDigest(b.Client))
 	b.TeleBot.Handle("/blockchain", handleBlockchain(b.Config.BlockchainAPI))
 	b.TeleBot.Handle("/chat", handleChat(b.Client))
-	b.TeleBot.Handle("/search", handleSearch())
+	b.TeleBot.Handle("/search", handleSearch(b.OpenAI))
 
 	b.TeleBot.Start()
 	return nil

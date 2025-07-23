@@ -14,6 +14,7 @@ import (
 
 	"telegram-reminder/internal/config"
 	"telegram-reminder/internal/logger"
+	openaiclient "telegram-reminder/internal/openai"
 
 	"github.com/go-co-op/gocron"
 	openai "github.com/sashabaranov/go-openai"
@@ -563,14 +564,16 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 	}
 }
 
-func handleSearch() func(tb.Context) error {
+func handleSearch(oa *openaiclient.Client) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command search", "chat", c.Chat().ID)
 		q := strings.TrimSpace(c.Message().Payload)
 		if q == "" {
 			return c.Send("Usage: /search <query>")
 		}
-		result, err := OpenAISearch(q)
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+		result, err := oa.Search(ctx, q)
 		if err != nil {
 			logger.L.Error("openai search", "err", err)
 			return c.Send("search error")

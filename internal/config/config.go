@@ -14,9 +14,15 @@ const (
 	EnvLogChatID         = "LOG_CHAT_ID"
 	EnvOpenAIKey         = "OPENAI_API_KEY"
 	EnvOpenAIModel       = "OPENAI_MODEL"
+	EnvOpenAIModelSearch = "OPENAI_MODEL_SEARCH"
 	EnvBlockchainAPI     = "BLOCKCHAIN_API"
 	EnvEnableWebSearch   = "ENABLE_WEB_SEARCH"
 	EnvSearchProviderURL = "SEARCH_PROVIDER_URL"
+)
+
+const (
+	DefaultModelDigest = "gpt-4o"
+	DefaultModelSearch = "gpt-4o-mini"
 )
 
 const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
@@ -29,6 +35,7 @@ type Config struct {
 	LogChatID         int64
 	OpenAIKey         string
 	OpenAIModel       string
+	OpenAIModelSearch string
 	BlockchainAPI     string
 	EnableWebSearch   bool
 	SearchProviderURL string
@@ -43,6 +50,7 @@ func Load() (Config, error) {
 	logChatIDStr := os.Getenv(EnvLogChatID)
 	openaiKey := os.Getenv(EnvOpenAIKey)
 	openaiModel := os.Getenv(EnvOpenAIModel)
+	openaiModelSearch := os.Getenv(EnvOpenAIModelSearch)
 	blockchainAPI := os.Getenv(EnvBlockchainAPI)
 	enableWebSearchStr := os.Getenv(EnvEnableWebSearch)
 	searchProviderURL := os.Getenv(EnvSearchProviderURL)
@@ -73,6 +81,14 @@ func Load() (Config, error) {
 		blockchainAPI = DefaultBlockchainAPI
 	}
 
+	if openaiModel == "" {
+		openaiModel = DefaultModelDigest
+	}
+
+	if openaiModelSearch == "" {
+		openaiModelSearch = DefaultModelSearch
+	}
+
 	enableWebSearch := true
 	if enableWebSearchStr != "" {
 		enableWebSearch = enableWebSearchStr == "1" || strings.ToLower(enableWebSearchStr) == "true"
@@ -88,6 +104,7 @@ func Load() (Config, error) {
 		LogChatID:         logChatID,
 		OpenAIKey:         openaiKey,
 		OpenAIModel:       openaiModel,
+		OpenAIModelSearch: openaiModelSearch,
 		BlockchainAPI:     blockchainAPI,
 		EnableWebSearch:   enableWebSearch,
 		SearchProviderURL: searchProviderURL,
