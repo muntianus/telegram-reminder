@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"time"
 
@@ -57,15 +56,17 @@ func New(cfg config.Config) (*Bot, error) {
 
 // Start registers handlers, schedules tasks and starts the bot.
 func (b *Bot) Start() error {
-	log.Printf("Authorized as %s", b.TeleBot.Me.Username)
+	logger.L.Info("authorized", "user", b.TeleBot.Me.Username)
 
 	if b.Config.LogChatID != 0 {
 		logger.EnableTelegramLogging(b.Config.TelegramToken, b.Config.LogChatID, slog.LevelDebug)
 	}
 
+	b.TeleBot.Use(logger.TelebotMiddleware())
+
 	if b.Config.ChatID != 0 {
 		if err := AddIDToWhitelist(b.Config.ChatID); err != nil {
-			log.Printf("whitelist add: %v", err)
+			logger.L.Error("whitelist add", "err", err)
 		}
 	}
 

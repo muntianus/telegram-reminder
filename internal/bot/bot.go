@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -280,7 +279,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 
 			logger.L.Debug("run task", "name", tcopy.Name, "model", model)
 
-			log.Printf("running task: %s", tcopy.Name)
+			logger.L.Debug("task running", "name", tcopy.Name)
 			prompt := applyTemplate(tcopy.Prompt, model)
 			resp, err := SystemCompletion(ctx, client, prompt, model)
 			if err != nil {
@@ -291,9 +290,9 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			text := resp
 			if chatID != 0 {
 				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
-					log.Printf("telegram send error: %v", err)
+					logger.L.Error("telegram send", "chat_id", chatID, "err", err)
 				} else {
-					log.Printf("sent to chat_id: %d", chatID)
+					logger.L.Debug("telegram sent", "chat_id", chatID)
 				}
 				return
 			}
@@ -305,9 +304,9 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			logger.L.Debug("broadcast startup", "recipients", len(ids))
 			for _, id := range ids {
 				if _, err := b.Send(tb.ChatID(id), text); err != nil {
-					log.Printf("telegram send error: %v", err)
+					logger.L.Error("telegram send", "chat_id", id, "err", err)
 				} else {
-					log.Printf("sent to chat_id: %d", id)
+					logger.L.Debug("telegram sent", "chat_id", id)
 				}
 			}
 		}
@@ -371,7 +370,7 @@ func handlePing(c tb.Context) error {
 func handleStart(c tb.Context) error {
 	logger.L.Debug("command start", "chat", c.Chat().ID)
 	if err := AddIDToWhitelist(c.Chat().ID); err != nil {
-		log.Printf("whitelist add: %v", err)
+		logger.L.Error("whitelist add", "err", err)
 	}
 	return c.Send("Бот активирован")
 }
@@ -380,7 +379,7 @@ func handleWhitelist(c tb.Context) error {
 	logger.L.Debug("command whitelist", "chat", c.Chat().ID)
 	ids, err := LoadWhitelist()
 	if err != nil {
-		log.Printf("load whitelist: %v", err)
+		logger.L.Error("load whitelist", "err", err)
 		return c.Send("whitelist error")
 	}
 	if len(ids) == 0 {
@@ -400,7 +399,7 @@ func handleRemove(c tb.Context) error {
 		return c.Send("Bad ID")
 	}
 	if err := RemoveIDFromWhitelist(id); err != nil {
-		log.Printf("remove id: %v", err)
+		logger.L.Error("remove id", "err", err)
 		return c.Send("remove error")
 	}
 	return c.Send("Removed")
