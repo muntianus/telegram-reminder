@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"telegram-reminder/internal/config"
@@ -37,7 +36,7 @@ func New(cfg config.Config) (*Bot, error) {
 	}
 
 	oaCfg := openai.DefaultConfig(cfg.OpenAIKey)
-	oaCfg.HTTPClient = &http.Client{Timeout: OpenAITimeout}
+	oaCfg.HTTPClient = logger.NewHTTPClient(OpenAITimeout)
 	client := openai.NewClientWithConfig(oaCfg)
 
 	tz, err := time.LoadLocation("Europe/Moscow")
