@@ -62,7 +62,8 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	client := logger.NewHTTPClient(OpenAITimeout)
+	resp, err := client.Do(req)
 	if err != nil {
 		logger.L.Debug("web search error", "err", err)
 		return "", err

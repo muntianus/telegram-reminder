@@ -113,7 +113,7 @@
 * URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
 * Включить веб-поиск (`ENABLE_WEB_SEARCH`, `true`/`false`, по умолчанию `true`)
 * URL провайдера поиска (`SEARCH_PROVIDER_URL`, опционально)
-* Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`)
+* Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`) – на `debug` пишутся все события шедулера и запросы к OpenAI
 * ID чата для логов (`LOG_CHAT_ID`, опционально)
 
 ## Добавление бота в каналы и группы
@@ -132,7 +132,7 @@ export OPENAI_API_KEY=your_openai_key
 export LUNCH_TIME=13:00
 export BRIEF_TIME=20:00
 export LOG_LEVEL=debug
-# логирование всех вызовов в режиме debug
+# подробные логи всех задач и запросов к OpenAI
 
 # опционально задайте начальный чат
 # export CHAT_ID=123456789

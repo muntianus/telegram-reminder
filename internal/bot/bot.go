@@ -312,22 +312,31 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			}
 		}
 
+		var j *gocron.Job
 		var jerr error
 		switch {
 		case t.Cron != "":
 			logger.L.Debug("schedule cron", "name", t.Name, "cron", t.Cron)
-			_, jerr = s.Cron(t.Cron).Do(job)
+			j, jerr = s.Cron(t.Cron).Do(job)
 		default:
 			timeStr := t.Time
 			if timeStr == "" {
 				timeStr = "00:00"
 			}
 			logger.L.Debug("schedule daily", "name", t.Name, "time", timeStr)
-			_, jerr = s.Every(1).Day().At(timeStr).Do(job)
+			j, jerr = s.Every(1).Day().At(timeStr).Do(job)
 		}
 		if jerr != nil {
 			logger.L.Error("schedule job", "err", jerr)
+			continue
 		}
+		j.RegisterEventListeners(
+			gocron.BeforeJobRuns(func(jobName string) { logger.L.Debug("job start", "job", t.Name) }),
+			gocron.AfterJobRuns(func(jobName string) { logger.L.Debug("job end", "job", t.Name) }),
+			gocron.WhenJobReturnsError(func(jobName string, err error) { logger.L.Error("job error", "job", t.Name, "err", err) }),
+			gocron.WhenJobReturnsNoError(func(jobName string) { logger.L.Debug("job success", "job", t.Name) }),
+		)
+		j.Tag(t.Name)
 	}
 }
 

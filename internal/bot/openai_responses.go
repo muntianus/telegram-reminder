@@ -48,7 +48,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: OpenAITimeout}
+	client := logger.NewHTTPClient(OpenAITimeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		logger.L.Debug("responses api error", "err", err)

@@ -60,7 +60,8 @@ func OpenAISearch(query string) ([]SearchResult, error) {
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	client := logger.NewHTTPClient(30 * time.Second)
+	resp, err := client.Do(req)
 	if err != nil {
 		logger.L.Debug("openai search error", "err", err)
 		return nil, err
