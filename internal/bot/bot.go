@@ -570,19 +570,15 @@ func handleSearch() func(tb.Context) error {
 		if q == "" {
 			return c.Send("Usage: /search <query>")
 		}
-		results, err := OpenAISearch(q)
+		result, err := OpenAISearch(q)
 		if err != nil {
 			logger.L.Error("openai search", "err", err)
 			return c.Send("search error")
 		}
-		if len(results) == 0 {
+		if strings.TrimSpace(result) == "" {
 			return c.Send("no results")
 		}
-		var b strings.Builder
-		for i, r := range results {
-			fmt.Fprintf(&b, "%d. %s (%.2f)\n", i+1, r.Text, r.Score)
-		}
-		return c.Send(b.String())
+		return c.Send(result)
 	}
 }
 
