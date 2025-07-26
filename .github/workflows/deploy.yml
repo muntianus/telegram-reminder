@@ -77,11 +77,10 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOSSH'
             set -e
             cd /opt/telegram-reminder/telegram-reminder
 
-            # Подставляем переменные из GitHub Secrets
             TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
             CHAT_ID="${{ secrets.CHAT_ID }}"
@@ -165,7 +164,8 @@ jobs:
             fi
 
             echo "[🎉] Деплой завершён успешно."
-          EOF
+EOSSH
+
   deploy-mcp:
     needs: build
     runs-on: ubuntu-latest
@@ -192,4 +192,3 @@ jobs:
               --restart unless-stopped \
               -e GITHUB_PERSONAL_ACCESS_TOKEN="${{ secrets.TOKEN_GITHUB }}" \
               ghcr.io/github/github-mcp-server:latest
-
