@@ -31,10 +31,6 @@ var webSearchTool = openai.Tool{
 	},
 }
 
-// SearchProviderURL is the template URL for performing web searches. It is set
-// from configuration at startup.
-var SearchProviderURL string
-
 // searchFunc performs a web search and returns plain text results. It can be
 // overridden in tests.
 var searchFunc = defaultWebSearch
@@ -48,8 +44,8 @@ func supportsWebSearch(model string) bool {
 	return false
 }
 
-// defaultWebSearch queries SearchProviderURL using GET and returns the body as a
-// string. It limits the response to 2000 bytes.
+// defaultWebSearch performs a search using the OpenAI search API and returns the
+// plain text result.
 func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	logger.L.Debug("web search", "query", query)
 	apiKey := os.Getenv("OPENAI_API_KEY")
