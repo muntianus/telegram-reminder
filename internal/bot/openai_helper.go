@@ -98,15 +98,15 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
 		// o3/o1 models have fixed parameters: temperature=1, top_p=1, n=1
 		// presence_penalty and frequency_penalty are fixed at 0
-		req.MaxCompletionTokens = 600
+		req.MaxCompletionTokens = OpenAIMaxTokens
 	} else if strings.HasPrefix(model, "gpt-4o") {
 		// GPT-4o models support web search (handled automatically by OpenAI)
 		req.Temperature = 0.9
-		req.MaxTokens = 600
+		req.MaxTokens = OpenAIMaxTokens
 	} else {
 		// Standard models support custom parameters
 		req.Temperature = 0.9
-		req.MaxTokens = 600
+		req.MaxTokens = OpenAIMaxTokens
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, req)

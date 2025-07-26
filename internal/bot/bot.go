@@ -63,6 +63,10 @@ const (
 const OpenAITimeout = 3 * time.Minute
 const BlockchainTimeout = 10 * time.Second
 
+const TelegramMessageLimit = 4096
+
+var OpenAIMaxTokens = 600
+
 const Version = "0.1.0"
 
 // formatOpenAIError форматирует ошибку OpenAI для пользователя
@@ -286,7 +290,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			}
 			text := resp
 			if chatID != 0 {
-				if _, err := b.Send(tb.ChatID(chatID), text); err != nil {
+				if err := sendLong(b, tb.ChatID(chatID), text); err != nil {
 					logger.L.Error("telegram send", "chat_id", chatID, "err", err)
 				} else {
 					logger.L.Debug("telegram sent", "chat_id", chatID)
@@ -300,7 +304,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 			}
 			logger.L.Debug("broadcast startup", "recipients", len(ids))
 			for _, id := range ids {
-				if _, err := b.Send(tb.ChatID(id), text); err != nil {
+				if err := sendLong(b, tb.ChatID(id), text); err != nil {
 					logger.L.Error("telegram send", "chat_id", id, "err", err)
 				} else {
 					logger.L.Debug("telegram sent", "chat_id", id)
@@ -340,7 +344,7 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
 	logger.L.Debug("send startup message", "chat_id", chatID)
 	if chatID != 0 {
-		if _, err := b.Send(tb.ChatID(chatID), msg); err != nil {
+		if err := sendLong(b, tb.ChatID(chatID), msg); err != nil {
 			logger.L.Error("telegram send", "err", err)
 		}
 		return
@@ -351,7 +355,7 @@ func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
 		return
 	}
 	for _, id := range ids {
-		if _, err := b.Send(tb.ChatID(id), msg); err != nil {
+		if err := sendLong(b, tb.ChatID(id), msg); err != nil {
 			logger.L.Error("telegram send", "err", err)
 		}
 	}
