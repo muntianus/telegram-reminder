@@ -13,6 +13,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=secret,id=env \
+    if [ -f /run/secrets/env ]; then \
+        set -o allexport && . /run/secrets/env && set +o allexport; \
+    fi && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags="-s -w" -o /bot ./cmd/bot
 
