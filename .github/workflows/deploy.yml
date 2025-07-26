@@ -107,7 +107,7 @@ jobs:
             echo "  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1}"
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
 
-            cat <<EOF > .env
+            cat <<ENV_EOF > .env
             TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
             OPENAI_API_KEY=${OPENAI_API_KEY}
             CHAT_ID=${CHAT_ID}
@@ -124,7 +124,7 @@ jobs:
             TASKS_JSON=${TASKS_JSON}
             WHITELIST_FILE=${WHITELIST_FILE}
             DOCKERHUB_USER=${DOCKERHUB_USER}
-            EOF
+          ENV_EOF
 
             echo "[📋] Содержимое .env:"
             cat .env
