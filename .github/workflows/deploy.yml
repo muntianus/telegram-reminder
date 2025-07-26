@@ -125,47 +125,6 @@ jobs:
             WHITELIST_FILE=${WHITELIST_FILE}
             DOCKERHUB_USER=${DOCKERHUB_USER}
             EOF
-
-            echo "[📋] Содержимое .env:"
-            cat .env
-
-            echo "[🔍] Проверяем docker-compose.yml..."
-            if [ ! -f docker-compose.yml ]; then
-              echo "[⚠️] Не найден docker-compose.yml — создаём..."
-              printf '%s\n' \
-                "services:" \
-                "  telegram-reminder:" \
-                "    image: ${DOCKERHUB_USER}/telegram-reminder:latest" \
-                "    container_name: telegram-reminder" \
-                "    restart: always" \
-                "    env_file:" \
-                "      - .env" > docker-compose.yml
-            fi
-
-            echo "[🐳] Пуллим образ и перезапускаем контейнер..."
-            docker pull ${DOCKERHUB_USER}/telegram-reminder:latest
-            docker rm -f telegram-reminder || true
-            docker compose down || true
-            docker compose up -d
-
-            echo "[✅] Контейнер поднят. Проверяем статус..."
-            sleep 2
-            docker compose ps
-
-            echo "[🔍] Проверяем переменные окружения в контейнере..."
-            docker exec telegram-reminder env | grep -E "(OPENAI|TELEGRAM)" || echo "Контейнер еще не готов"
-
-            echo "[📋] Логи контейнера (последние 10 строк):"
-            docker logs telegram-reminder --tail 10 || echo "Логи недоступны"
-
-            echo "[✅] Проверка процесса..."
-            if ! docker inspect -f '{{.State.Running}}' telegram-reminder | grep true; then
-              echo "[❌] Контейнер не запущен"
-              exit 1
-            fi
-
-            echo "[🎉] Деплой завершён успешно."
-          EOF
   deploy-mcp:
     needs: build
     runs-on: ubuntu-latest
