@@ -1,78 +1,200 @@
-name: Deploy to VPS
+name: Build & Deploy
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    env:
-      OPENAI_MAX_TOKENS: "4096"
-      OPENAI_TOOL_CHOICE: "auto"
-      LUNCH_TIME: "13:45"
-      BRIEF_TIME: "11:45"
-      BLOCKCHAIN_API: "https://api.blockchain.info/stats"
-      ENABLE_WEB_SEARCH: "true"
-      LOG_LEVEL: "debug"
-      TASKS_FILE: "tasks.yml"
-      TASKS_JSON: ""
-      WHITELIST_FILE: ""
-      DOCKERHUB_USER: "rusdevs"
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Mask dynamic secrets
-        shell: bash
-        run: |
-          for s in TELEGRAM_TOKEN OPENAI_API_KEY CHAT_ID LOG_CHAT_ID OPENAI_MODEL; do
-            echo "::add-mask::${{ secrets[$s] }}"
-          done
-
-      - name: Build .env from secrets
-        shell: bash
-        run: |
-          cat > .env <<EOF_ENV
-          TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          CHAT_ID=${{ secrets.CHAT_ID }}
-          LOG_CHAT_ID=${{ secrets.LOG_CHAT_ID }}
-          OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}
-          OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
-          OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
-          LUNCH_TIME=${LUNCH_TIME}
-          BRIEF_TIME=${BRIEF_TIME}
-          BLOCKCHAIN_API=${BLOCKCHAIN_API}
-          ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
-          LOG_LEVEL=${LOG_LEVEL}
-          TASKS_FILE=${TASKS_FILE}
-          TASKS_JSON=${TASKS_JSON}
-          WHITELIST_FILE=${WHITELIST_FILE}
-          DOCKERHUB_USER=${DOCKERHUB_USER}
-          EOF_ENV
-
-      - name: Copy project to server via SCP
-        uses: appleboy/scp-action@v1
+      - name: Setup Go
+        uses: actions/setup-go@v4
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "./"
-          target: "/opt/telegram-reminder"
+          go-version: 1.24.x
 
-      - name: Run deploy script remotely
+      - name: Clean Go cache
+        run: go clean -cache -modcache -testcache
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binary
+        run: go build -ldflags="-s -w" -o bot ./cmd/bot
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Restore Docker cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USER }}/telegram-reminder:latest
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move Docker cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOSSH'
+            set -e
+            cd /opt/telegram-reminder/telegram-reminder
+
+            TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            CHAT_ID="${{ secrets.CHAT_ID }}"
+            LOG_CHAT_ID="${{ secrets.LOG_CHAT_ID }}"
+            OPENAI_MODEL="${{ secrets.OPENAI_MODEL }}"
+            OPENAI_MAX_TOKENS="${{ secrets.OPENAI_MAX_TOKENS }}"
+            OPENAI_TOOL_CHOICE="${{ secrets.OPENAI_TOOL_CHOICE }}"
+            LUNCH_TIME="${{ secrets.LUNCH_TIME }}"
+            BRIEF_TIME="${{ secrets.BRIEF_TIME }}"
+            BLOCKCHAIN_API="${{ secrets.BLOCKCHAIN_API }}"
+            ENABLE_WEB_SEARCH="${{ secrets.ENABLE_WEB_SEARCH }}"
+            LOG_LEVEL="${{ secrets.LOG_LEVEL }}"
+            TASKS_FILE="${{ secrets.TASKS_FILE }}"
+            WHITELIST_FILE="${{ secrets.WHITELIST_FILE }}"
+            TASKS_JSON="${{ secrets.TASKS_JSON }}"
+            DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
+
+            echo "[📦] Обновляем .env..."
+            echo "[🔍] Отладочная информация:"
+            echo "  TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:0:10}..."
+            echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}..."
+            echo "  CHAT_ID: ${CHAT_ID:-НЕ_НАСТРОЕН}"
+            echo "  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1}"
+            echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
+
+            cat <<EOENV > .env
+            TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            CHAT_ID=${CHAT_ID}
+            LOG_CHAT_ID=${LOG_CHAT_ID}
+            OPENAI_MODEL=${OPENAI_MODEL}
+            OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+            OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+            LUNCH_TIME=${LUNCH_TIME}
+            BRIEF_TIME=${BRIEF_TIME}
+            BLOCKCHAIN_API=${BLOCKCHAIN_API}
+            ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+            LOG_LEVEL=${LOG_LEVEL}
+            TASKS_FILE=${TASKS_FILE:-tasks.yml}
+            TASKS_JSON=${TASKS_JSON}
+            WHITELIST_FILE=${WHITELIST_FILE}
+            DOCKERHUB_USER=${DOCKERHUB_USER}
+            EOENV
+            sed -i 's/^ *//' .env
+
+            cat .env
+            docker exec telegram-reminder env | grep TELEGRAM
+
+            echo "[📋] Содержимое .env:"
+            cat .env
+
+            echo "[🔍] Проверяем docker-compose.yml..."
+            if [ ! -f docker-compose.yml ]; then
+              echo "[⚠️] Не найден docker-compose.yml — создаём..."
+              printf '%s\n' \
+                "services:" \
+                "  telegram-reminder:" \
+                "    image: ${DOCKERHUB_USER}/telegram-reminder:latest" \
+                "    container_name: telegram-reminder" \
+                "    restart: always" \
+                "    env_file:" \
+                "      - .env" > docker-compose.yml
+            fi
+
+            echo "[🐳] Пуллим образ и перезапускаем контейнер..."
+            docker pull ${DOCKERHUB_USER}/telegram-reminder:latest
+            docker rm -f telegram-reminder || true
+            docker compose down || true
+            docker compose up -d
+
+            echo "[✅] Контейнер поднят. Проверяем статус..."
+            sleep 2
+            docker compose ps
+
+            echo "[🔍] Проверяем переменные окружения в контейнере..."
+            docker exec telegram-reminder env | grep -E "(OPENAI|TELEGRAM)" || echo "Контейнер еще не готов"
+
+            echo "[📋] Логи контейнера (последние 10 строк):"
+            docker logs telegram-reminder --tail 10 || echo "Логи недоступны"
+
+            echo "[✅] Проверка процесса..."
+            if ! docker inspect -f '{{.State.Running}}' telegram-reminder | grep true; then
+              echo "[❌] Контейнер не запущен"
+              exit 1
+            fi
+
+            echo "[🎉] Деплой завершён успешно."
+          EOSSH
+
+  deploy-mcp:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.TOKEN_GITHUB }}
+
+      - name: Deploy GitHub MCP to VPS via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/telegram-reminder
-            chmod +x generate_env.sh
-            ./generate_env.sh
-            docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' telegram-reminder | grep TELEGRAM_TOKEN
-            docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' telegram-reminder | grep healthy
-
+            docker pull ghcr.io/github/github-mcp-server:latest
+            docker rm -f github-mcp-server || true
+            docker run -d \
+              --name github-mcp-server \
+              --restart unless-stopped \
+              -e GITHUB_PERSONAL_ACCESS_TOKEN="${{ secrets.TOKEN_GITHUB }}" \
+              ghcr.io/github/github-mcp-server:latest
