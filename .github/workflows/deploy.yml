@@ -106,24 +106,24 @@ jobs:
             echo "  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1}"
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
 
-            cat <<ENV_EOF > .env
-            TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-            OPENAI_API_KEY=${OPENAI_API_KEY}
-            CHAT_ID=${CHAT_ID}
-            LOG_CHAT_ID=${LOG_CHAT_ID}
-            OPENAI_MODEL=${OPENAI_MODEL}
-            OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
-            OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
-            LUNCH_TIME=${LUNCH_TIME}
-            BRIEF_TIME=${BRIEF_TIME}
-            BLOCKCHAIN_API=${BLOCKCHAIN_API}
-            ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
-            LOG_LEVEL=${LOG_LEVEL}
-            TASKS_FILE=${TASKS_FILE:-tasks.yml}
-            TASKS_JSON=${TASKS_JSON}
-            WHITELIST_FILE=${WHITELIST_FILE}
-            DOCKERHUB_USER=${DOCKERHUB_USER}
-          ENV_EOF
+cat <<EOF > .env
+TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+OPENAI_API_KEY=${OPENAI_API_KEY}
+CHAT_ID=${CHAT_ID}
+LOG_CHAT_ID=${LOG_CHAT_ID}
+OPENAI_MODEL=${OPENAI_MODEL}
+OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+LUNCH_TIME=${LUNCH_TIME}
+BRIEF_TIME=${BRIEF_TIME}
+BLOCKCHAIN_API=${BLOCKCHAIN_API}
+ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+LOG_LEVEL=${LOG_LEVEL}
+TASKS_FILE=${TASKS_FILE:-tasks.yml}
+TASKS_JSON=${TASKS_JSON}
+WHITELIST_FILE=${WHITELIST_FILE}
+DOCKERHUB_USER=${DOCKERHUB_USER}
+EOF
 
             echo "[📋] Содержимое .env:"
             cat .env
@@ -172,12 +172,14 @@ EOSSH
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.TOKEN_GITHUB }}
+
       - name: Deploy GitHub MCP to VPS via SSH
         uses: appleboy/ssh-action@v1
         with:
