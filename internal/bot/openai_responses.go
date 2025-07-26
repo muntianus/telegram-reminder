@@ -57,18 +57,27 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.L.Debug("responses api read", "err", err)
+		return "", err
+	}
 	if resp.StatusCode >= 400 {
-		data, _ := io.ReadAll(resp.Body)
+		logger.L.Debug("responses api status", "status", resp.Status, "body", string(data))
 		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
-		logger.L.Debug("responses api status", "status", resp.Status)
 		return "", err
 	}
 	var res responseResult
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+	if err := json.Unmarshal(data, &res); err != nil {
 		logger.L.Debug("responses api decode", "err", err)
+		logger.L.Debug("responses api body", "body", string(data))
 		return "", err
 	}
 	out := strings.TrimSpace(res.OutputText)
+	if out == "" {
+		logger.L.Debug("responses api empty output", "body", string(data))
+		return "", errors.New("openai: empty response")
+	}
 	logger.L.Debug("responses api result", "bytes", len(out))
 	return out, nil
 }
