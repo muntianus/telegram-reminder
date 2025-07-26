@@ -114,7 +114,6 @@
 * Путь к файлу whitelist (`WHITELIST_FILE`, опционально, по умолчанию `whitelist.json`)
 * URL API блокчейна (`BLOCKCHAIN_API`, опционально, по умолчанию `https://api.blockchain.info/stats`)
 * Включить веб-поиск (`ENABLE_WEB_SEARCH`, `true`/`false`, по умолчанию `true`)
-* URL провайдера поиска (`SEARCH_PROVIDER_URL`, опционально)
 * Уровень логирования (`LOG_LEVEL`, опционально, `debug`, `info`, `warn` или `error`) – на `debug` пишутся все события шедулера и запросы к OpenAI
 * ID чата для логов (`LOG_CHAT_ID`, опционально)
 
@@ -166,8 +165,7 @@ go run ./cmd/bot
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
 - `WHITELIST_FILE` – путь к файлу со списком чатов (по умолчанию `whitelist.json`)
 - `BLOCKCHAIN_API` – URL API блокчейна для команды `/blockchain`
- - `ENABLE_WEB_SEARCH` – включить веб-поиск (`true`/`false`, по умолчанию `true`)
-- `SEARCH_PROVIDER_URL` – URL провайдера поиска (опционально)
+- `ENABLE_WEB_SEARCH` – включить веб-поиск (`true`/`false`, по умолчанию `true`)
 - `LOG_LEVEL` – уровень логирования (`debug`, `info`, `warn` или `error`)
 
 Пример `.env` и `tasks.yml`:
@@ -184,7 +182,6 @@ TASKS_FILE=tasks.yml
 WHITELIST_FILE=whitelist.json
 BLOCKCHAIN_API=https://api.blockchain.info/stats
 ENABLE_WEB_SEARCH=true
-SEARCH_PROVIDER_URL=
 LOG_CHAT_ID=123456789
 ```
 
