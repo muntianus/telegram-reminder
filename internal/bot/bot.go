@@ -160,10 +160,11 @@ type Task struct {
 }
 
 var (
-	CurrentModel    = "gpt-4.1" // Модель по умолчанию с веб-поиском
-	ModelMu         sync.RWMutex
-	BasePrompt      string
-	EnableWebSearch bool
+	CurrentModel     = "gpt-4.1" // Модель по умолчанию с веб-поиском
+	ModelMu          sync.RWMutex
+	BasePrompt       string
+	EnableWebSearch  bool
+	OpenAIToolChoice string
 	// SupportedModels contains all OpenAI model identifiers that support web search and tools
 	SupportedModels = []string{
 		// Models with web search and tools support

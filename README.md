@@ -107,6 +107,7 @@
 * Ключ API OpenAI (`OPENAI_API_KEY`)
 * Имя модели OpenAI (`OPENAI_MODEL`, опционально, по умолчанию `gpt-4.1`)
 * Максимальное число токенов ответа (`OPENAI_MAX_TOKENS`, по умолчанию `600`)
+* Выбор использования tools (`OPENAI_TOOL_CHOICE`, по умолчанию `auto`)
 * Время идей на обед (`LUNCH_TIME`, опционально, по умолчанию `13:00`)
 * Время вечернего дайджеста (`BRIEF_TIME`, опционально, по умолчанию `20:00`)
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
@@ -159,6 +160,7 @@ go run ./cmd/bot
 - `OPENAI_API_KEY` – ключ API OpenAI
 - `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `gpt-4.1`)
 - `OPENAI_MAX_TOKENS` – максимальное число токенов ответа (по умолчанию `600`)
+- `OPENAI_TOOL_CHOICE` – режим tool calling (`auto` или `none`)
 - `LUNCH_TIME` – время для идей на обед
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
@@ -175,6 +177,7 @@ TELEGRAM_TOKEN=123456:ABC-DEF
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4.1
 OPENAI_MAX_TOKENS=600
+OPENAI_TOOL_CHOICE=auto
 LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
@@ -289,6 +292,7 @@ TELEGRAM_TOKEN=123456:ABC-DEF
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4.1
 OPENAI_MAX_TOKENS=600
+OPENAI_TOOL_CHOICE=auto
 LUNCH_TIME=13:00
 BRIEF_TIME=20:00
 # CHAT_ID=123456789

@@ -102,6 +102,13 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		req.Tools = []openai.Tool{webSearchTool}
 	}
 
+	if OpenAIToolChoice != "" {
+		req.ToolChoice = OpenAIToolChoice
+		if OpenAIToolChoice == "none" {
+			req.Tools = nil
+		}
+	}
+
 	// Configure parameters based on model type
 	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
 		// o3/o1 models have fixed parameters: temperature=1, top_p=1, n=1
