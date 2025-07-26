@@ -234,14 +234,14 @@ go run ./cmd/bot
 Соберите образ для текущей платформы:
 
 ```sh
-docker build --env-file .env -t telegram-bot .
+docker build --secret id=env,src=.env -t telegram-bot .
 ```
 
 Для сборки и публикации мультиархитектурного образа (linux/amd64 и linux/arm64) с помощью `buildx`:
 
 ```sh
 docker buildx build --platform linux/amd64,linux/arm64 \
-  --env-file .env \
+  --secret id=env,src=.env \
   -t your_dockerhub_user/telegram-bot:latest --push .
 ```
 
