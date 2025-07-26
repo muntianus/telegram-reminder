@@ -34,14 +34,16 @@ func parseLevel(l string) slog.Level {
 	switch strings.ToLower(l) {
 	case "debug":
 		return slog.LevelDebug
-	case "info", "":
+	case "info":
 		return slog.LevelInfo
+	case "":
+		return slog.LevelError
 	case "warn", "warning":
 		return slog.LevelWarn
 	case "error":
 		return slog.LevelError
 	default:
-		return slog.LevelInfo
+		return slog.LevelError
 	}
 }
 
