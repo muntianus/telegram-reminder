@@ -77,7 +77,7 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOSSH'
             set -e
             cd /opt/telegram-reminder/telegram-reminder
 
@@ -107,7 +107,7 @@ jobs:
             echo "  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1}"
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
 
-            cat <<EOF > .env
+            cat <<'EOENV' > .env
             TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
             OPENAI_API_KEY=${OPENAI_API_KEY}
             CHAT_ID=${CHAT_ID}
@@ -124,7 +124,11 @@ jobs:
             TASKS_JSON=${TASKS_JSON}
             WHITELIST_FILE=${WHITELIST_FILE}
             DOCKERHUB_USER=${DOCKERHUB_USER}
-            EOF
+            EOENV
+            sed -i 's/^ *//' .env
+
+            cat .env
+            docker exec telegram-reminder env | grep TELEGRAM
 
             echo "[📋] Содержимое .env:"
             cat .env
@@ -165,7 +169,7 @@ jobs:
             fi
 
             echo "[🎉] Деплой завершён успешно."
-          EOF
+          EOSSH
   deploy-mcp:
     needs: build
     runs-on: ubuntu-latest
