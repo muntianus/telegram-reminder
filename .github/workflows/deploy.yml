@@ -108,24 +108,24 @@ jobs:
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
 
             cat <<EOF > .env
-TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-OPENAI_API_KEY=${OPENAI_API_KEY}
-CHAT_ID=${CHAT_ID}
-LOG_CHAT_ID=${LOG_CHAT_ID}
-OPENAI_MODEL=${OPENAI_MODEL}
-OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
-OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
-LUNCH_TIME=${LUNCH_TIME}
-BRIEF_TIME=${BRIEF_TIME}
-BLOCKCHAIN_API=${BLOCKCHAIN_API}
-ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
-LOG_LEVEL=${LOG_LEVEL}
-TASKS_FILE=${TASKS_FILE:-tasks.yml}
-TASKS_JSON=${TASKS_JSON}
-WHITELIST_FILE=${WHITELIST_FILE}
-DOCKERHUB_USER=${DOCKERHUB_USER}
-EOF
-            
+            TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            CHAT_ID=${CHAT_ID}
+            LOG_CHAT_ID=${LOG_CHAT_ID}
+            OPENAI_MODEL=${OPENAI_MODEL}
+            OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+            OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+            LUNCH_TIME=${LUNCH_TIME}
+            BRIEF_TIME=${BRIEF_TIME}
+            BLOCKCHAIN_API=${BLOCKCHAIN_API}
+            ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+            LOG_LEVEL=${LOG_LEVEL}
+            TASKS_FILE=${TASKS_FILE:-tasks.yml}
+            TASKS_JSON=${TASKS_JSON}
+            WHITELIST_FILE=${WHITELIST_FILE}
+            DOCKERHUB_USER=${DOCKERHUB_USER}
+            EOF
+
             echo "[📋] Содержимое .env:"
             cat .env
 
@@ -151,10 +151,10 @@ EOF
             echo "[✅] Контейнер поднят. Проверяем статус..."
             sleep 2
             docker compose ps
-            
+
             echo "[🔍] Проверяем переменные окружения в контейнере..."
             docker exec telegram-reminder env | grep -E "(OPENAI|TELEGRAM)" || echo "Контейнер еще не готов"
-            
+
             echo "[📋] Логи контейнера (последние 10 строк):"
             docker logs telegram-reminder --tail 10 || echo "Логи недоступны"
 
