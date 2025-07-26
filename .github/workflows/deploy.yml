@@ -124,7 +124,7 @@ jobs:
             TASKS_JSON=${TASKS_JSON}
             WHITELIST_FILE=${WHITELIST_FILE}
             DOCKERHUB_USER=${DOCKERHUB_USER}
-            EOF
+          EOF
 
             echo "[📋] Содержимое .env:"
             cat .env
@@ -165,7 +165,7 @@ jobs:
             fi
 
             echo "[🎉] Деплой завершён успешно."
-          EOF
+          'EOF'
   deploy-mcp:
     needs: build
     runs-on: ubuntu-latest
