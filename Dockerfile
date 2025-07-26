@@ -14,7 +14,7 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -ldflags="-s -w" -o /bot .
+    go build -ldflags="-s -w" -o /bot ./cmd/bot
 
 FROM gcr.io/distroless/static
 WORKDIR /app
