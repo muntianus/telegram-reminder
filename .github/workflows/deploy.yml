@@ -82,25 +82,50 @@ jobs:
             cd /opt/telegram-reminder/telegram-reminder
 
             # Подставляем переменные из GitHub Secrets
-            DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
             TELEGRAM_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
             CHAT_ID="${{ secrets.CHAT_ID }}"
+            LOG_CHAT_ID="${{ secrets.LOG_CHAT_ID }}"
+            OPENAI_MODEL="${{ secrets.OPENAI_MODEL }}"
+            OPENAI_MAX_TOKENS="${{ secrets.OPENAI_MAX_TOKENS }}"
+            OPENAI_TOOL_CHOICE="${{ secrets.OPENAI_TOOL_CHOICE }}"
+            LUNCH_TIME="${{ secrets.LUNCH_TIME }}"
+            BRIEF_TIME="${{ secrets.BRIEF_TIME }}"
+            BLOCKCHAIN_API="${{ secrets.BLOCKCHAIN_API }}"
+            ENABLE_WEB_SEARCH="${{ secrets.ENABLE_WEB_SEARCH }}"
+            LOG_LEVEL="${{ secrets.LOG_LEVEL }}"
+            TASKS_FILE="${{ secrets.TASKS_FILE }}"
+            WHITELIST_FILE="${{ secrets.WHITELIST_FILE }}"
+            TASKS_JSON="${{ secrets.TASKS_JSON }}"
+            DOCKERHUB_USER="${{ secrets.DOCKERHUB_USER }}"
 
             echo "[📦] Обновляем .env..."
             echo "[🔍] Отладочная информация:"
             echo "  TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:0:10}..."
             echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:0:10}..."
             echo "  CHAT_ID: ${CHAT_ID:-НЕ_НАСТРОЕН}"
+            echo "  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1}"
             echo "  DOCKERHUB_USER: ${DOCKERHUB_USER}"
-            
-            printf '%s\n' \
-              "TELEGRAM_TOKEN=${TELEGRAM_TOKEN}" \
-              "OPENAI_API_KEY=${OPENAI_API_KEY}" \
-              "CHAT_ID=${CHAT_ID}" \
-              "DOCKERHUB_USER=${DOCKERHUB_USER}" \
-              "TASKS_FILE=tasks.yml" > .env
-            
+
+            cat <<EOF > .env
+            TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            CHAT_ID=${CHAT_ID}
+            LOG_CHAT_ID=${LOG_CHAT_ID}
+            OPENAI_MODEL=${OPENAI_MODEL}
+            OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+            OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+            LUNCH_TIME=${LUNCH_TIME}
+            BRIEF_TIME=${BRIEF_TIME}
+            BLOCKCHAIN_API=${BLOCKCHAIN_API}
+            ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+            LOG_LEVEL=${LOG_LEVEL}
+            TASKS_FILE=${TASKS_FILE:-tasks.yml}
+            TASKS_JSON=${TASKS_JSON}
+            WHITELIST_FILE=${WHITELIST_FILE}
+            DOCKERHUB_USER=${DOCKERHUB_USER}
+            EOF
+
             echo "[📋] Содержимое .env:"
             cat .env
 
@@ -126,10 +151,10 @@ jobs:
             echo "[✅] Контейнер поднят. Проверяем статус..."
             sleep 2
             docker compose ps
-            
+
             echo "[🔍] Проверяем переменные окружения в контейнере..."
             docker exec telegram-reminder env | grep -E "(OPENAI|TELEGRAM)" || echo "Контейнер еще не готов"
-            
+
             echo "[📋] Логи контейнера (последние 10 строк):"
             docker logs telegram-reminder --tail 10 || echo "Логи недоступны"
 
