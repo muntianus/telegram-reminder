@@ -1,8 +1,20 @@
-# /opt/telegram-reminder/telegram-reminder/docker-compose.yml
+version: "3.9"
 services:
-  telegram-reminder:            # ← вместо bot
-    image: ${DOCKERHUB_USER}/telegram-reminder:latest
-    container_name: telegram-reminder  # фиксируем именно такое имя
+  telegram-reminder:
+    image: rusdevs/telegram-reminder:${TAG:-latest}
+    container_name: telegram-reminder
     restart: unless-stopped
     env_file:
       - .env
+    labels:
+      - "com.docker.compose.service=telegram-reminder"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

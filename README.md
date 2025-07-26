@@ -256,7 +256,7 @@ docker run -e TELEGRAM_TOKEN=your_token -e OPENAI_API_KEY=your_api_key \
 
 ```sh
 cp .env.example .env
-docker-compose up -d
+make deploy
 ```
 
 ## Развёртывание через GitHub Actions
@@ -274,6 +274,21 @@ docker-compose up -d
 * `TELEGRAM_TOKEN`, `OPENAI_API_KEY` и при необходимости `CHAT_ID` и `OPENAI_MODEL` для заполнения `.env` во время деплоя.
 
 После завершения деплоя зайдите на VPS и выполните `docker ps`, чтобы убедиться, что контейнер запущен.
+
+### Пример job для CI
+
+```yaml
+deploy:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - name: Deploy bot
+      run: make deploy
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+```
 
 ## Решение проблем
 
