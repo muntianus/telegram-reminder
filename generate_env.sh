@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+# Recreate .env from current environment variables
+cat > .env <<EOENV
+TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+OPENAI_API_KEY=${OPENAI_API_KEY}
+CHAT_ID=${CHAT_ID}
+LOG_CHAT_ID=${LOG_CHAT_ID}
+OPENAI_MODEL=${OPENAI_MODEL}
+OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+LUNCH_TIME=${LUNCH_TIME}
+BRIEF_TIME=${BRIEF_TIME}
+BLOCKCHAIN_API=${BLOCKCHAIN_API}
+ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+LOG_LEVEL=${LOG_LEVEL}
+TASKS_FILE=${TASKS_FILE}
+TASKS_JSON=${TASKS_JSON}
+WHITELIST_FILE=${WHITELIST_FILE}
+DOCKERHUB_USER=${DOCKERHUB_USER}
+EOENV
+
+# Trim leading spaces
+sed -i 's/^ *//' .env
+
+# Export variables and restart container
+set -a
+source .env
+set +a
+
+docker compose up -d --force-recreate
+
