@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"time"
 
 	"telegram-reminder/internal/logger"
 )
@@ -18,7 +17,9 @@ func OpenAISearch(query string) (string, error) {
 		return "", errors.New("OPENAI_API_KEY not set")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Use the same timeout as other OpenAI requests to avoid early
+	// cancellation when search results take longer to generate.
+	ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 	defer cancel()
 
 	out, err := ChatResponses(ctx, apiKey, CurrentModel, query)

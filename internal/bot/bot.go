@@ -60,7 +60,11 @@ const (
 `
 )
 
-const OpenAITimeout = 3 * time.Minute
+// OpenAITimeout defines how long the bot waits for a response from OpenAI.
+// The previous value of 3 minutes was occasionally insufficient for
+// complex prompts. Increasing the timeout helps prevent premature
+// cancellation of requests.
+const OpenAITimeout = 5 * time.Minute
 const BlockchainTimeout = 10 * time.Second
 
 const TelegramMessageLimit = 4096
