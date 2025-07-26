@@ -71,7 +71,7 @@ export OPENAI_MODEL=gpt-4o
 ```bash
 # Запустите бота с подробным логированием:
 export LOG_LEVEL=debug
-go run main.go
+go run ./cmd/bot
 ```
 
 ### 🔄 Возврат к o3 модели
