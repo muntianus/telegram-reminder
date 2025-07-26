@@ -63,7 +63,7 @@ const (
 `
 )
 
-const OpenAITimeout = 40 * time.Second
+const OpenAITimeout = 3 * time.Minute
 const BlockchainTimeout = 10 * time.Second
 
 const Version = "0.1.0"
