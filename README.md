@@ -133,8 +133,8 @@ export TELEGRAM_TOKEN=your_telegram_token
 export OPENAI_API_KEY=your_openai_key
 export LUNCH_TIME=13:00
 export BRIEF_TIME=20:00
-export LOG_LEVEL=error
-# уровень логов: только ошибки
+export LOG_LEVEL=debug
+# подробный уровень логов
 
 # опционально задайте начальный чат
 # export CHAT_ID=123456789
