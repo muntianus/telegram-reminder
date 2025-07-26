@@ -49,7 +49,7 @@ func TestChatCommand(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
-		text, err := botpkg.UserCompletion(ctx, client, "test message", "o3")
+		text, err := botpkg.UserCompletion(ctx, client, "test message", "gpt-4.1")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

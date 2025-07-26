@@ -53,7 +53,7 @@
 - `/start` – добавить текущий чат в рассылку.
 - `/whitelist` – показать список подключённых чатов.
 - `/remove <id>` – убрать чат из списка.
-- `/model [имя]` – показать или сменить модель генерации (по умолчанию `o3`).
+- `/model [имя]` – показать или сменить модель генерации (по умолчанию `gpt-4.1`).
 - `/lunch` – немедленно запросить идеи на обед.
 - `/brief` – немедленно запросить вечерний дайджест.
 - `/tasks` – вывести текущее расписание задач.
@@ -105,7 +105,7 @@
 * Токен телеграм-бота (`TELEGRAM_TOKEN`)
 * ID целевого чата (`CHAT_ID`, опционально)
 * Ключ API OpenAI (`OPENAI_API_KEY`)
-* Имя модели OpenAI (`OPENAI_MODEL`, опционально, по умолчанию `o3`)
+* Имя модели OpenAI (`OPENAI_MODEL`, опционально, по умолчанию `gpt-4.1`)
 * Время идей на обед (`LUNCH_TIME`, опционально, по умолчанию `13:00`)
 * Время вечернего дайджеста (`BRIEF_TIME`, опционально, по умолчанию `20:00`)
 * Путь к файлу задач (`TASKS_FILE`) или JSON в `TASKS_JSON` для полной настройки расписания
@@ -156,7 +156,7 @@ go run ./cmd/bot
 - `CHAT_ID` – числовой ID чата назначения (опционально)
 - `LOG_CHAT_ID` – ID чата для отправки логов (опционально)
 - `OPENAI_API_KEY` – ключ API OpenAI
-- `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `o3`)
+- `OPENAI_MODEL` – имя модели OpenAI (опционально, по умолчанию `gpt-4.1`)
 - `LUNCH_TIME` – время для идей на обед
 - `BRIEF_TIME` – время вечернего дайджеста
 - `TASKS_FILE` – путь к YAML-файлу с пользовательскими заданиями
@@ -171,7 +171,7 @@ go run ./cmd/bot
 ```ini
 TELEGRAM_TOKEN=123456:ABC-DEF
 OPENAI_API_KEY=sk-xxxxxxxx
-OPENAI_MODEL=o3
+OPENAI_MODEL=gpt-4.1
 LUNCH_TIME=12:00
 BRIEF_TIME=18:00
 TASKS_FILE=tasks.yml
@@ -183,7 +183,7 @@ LOG_CHAT_ID=123456789
 ```
 
 ```yaml
-- model: gpt-4o
+- model: gpt-4.1
 - base_prompt: &base |
     Ты говоришь кратко, дерзко, панибратски.
     Заполни блоки:
@@ -198,7 +198,7 @@ LOG_CHAT_ID=123456789
 tasks:
   - name: land_price
     time: "10:00"
-    model: gpt-4o
+    model: gpt-4.1
     prompt: |
       {base_prompt}
       Задача: Найди цену сотки на {date} и переведи в USD по курсу из {exchange_api}.
@@ -283,7 +283,7 @@ docker-compose up -d
 ```ini
 TELEGRAM_TOKEN=123456:ABC-DEF
 OPENAI_API_KEY=sk-xxxxxxxx
-OPENAI_MODEL=o3
+OPENAI_MODEL=gpt-4.1
 LUNCH_TIME=13:00
 BRIEF_TIME=20:00
 # CHAT_ID=123456789
