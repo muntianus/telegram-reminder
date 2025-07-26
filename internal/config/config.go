@@ -17,6 +17,7 @@ const (
 	EnvBlockchainAPI     = "BLOCKCHAIN_API"
 	EnvEnableWebSearch   = "ENABLE_WEB_SEARCH"
 	EnvSearchProviderURL = "SEARCH_PROVIDER_URL"
+	EnvOpenAIMaxTokens   = "OPENAI_MAX_TOKENS"
 )
 
 const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
@@ -29,6 +30,7 @@ type Config struct {
 	LogChatID         int64
 	OpenAIKey         string
 	OpenAIModel       string
+	OpenAIMaxTokens   int
 	BlockchainAPI     string
 	EnableWebSearch   bool
 	SearchProviderURL string
@@ -49,6 +51,7 @@ func Load() (Config, error) {
 	blockchainAPI := os.Getenv(EnvBlockchainAPI)
 	enableWebSearchStr := os.Getenv(EnvEnableWebSearch)
 	searchProviderURL := os.Getenv(EnvSearchProviderURL)
+	maxTokensStr := os.Getenv(EnvOpenAIMaxTokens)
 
 	if telegramToken == "" || openaiKey == "" {
 		return cfg, fmt.Errorf("missing required env vars")
@@ -85,12 +88,20 @@ func Load() (Config, error) {
 		searchProviderURL = DefaultSearchProviderURL
 	}
 
+	maxTokens := 600
+	if maxTokensStr != "" {
+		if v, err := strconv.Atoi(maxTokensStr); err == nil {
+			maxTokens = v
+		}
+	}
+
 	cfg = Config{
 		TelegramToken:     telegramToken,
 		ChatID:            chatID,
 		LogChatID:         logChatID,
 		OpenAIKey:         openaiKey,
 		OpenAIModel:       openaiModel,
+		OpenAIMaxTokens:   maxTokens,
 		BlockchainAPI:     blockchainAPI,
 		EnableWebSearch:   enableWebSearch,
 		SearchProviderURL: searchProviderURL,

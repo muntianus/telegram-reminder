@@ -93,7 +93,7 @@ func handleTask(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "task", t.Name, "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -139,7 +139,7 @@ func handleLunch(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "command", "lunch", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -155,7 +155,7 @@ func handleBrief(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "command", "brief", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -193,7 +193,7 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 			return c.Send("blockchain error")
 		}
 		msg := fmt.Sprintf("BTC price: $%.2f\nTransactions: %d\nHash rate: %.2f", st.MarketPriceUSD, st.NTx, st.HashRate)
-		return c.Send(msg)
+		return replyLong(c, msg)
 	}
 }
 
@@ -211,8 +211,7 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "command", "chat", "model", CurrentModel, "err", err)
 			return c.Send(formatOpenAIError(err, CurrentModel))
 		}
-		_, err = c.Bot().Send(c.Sender(), resp)
-		return err
+		return sendLong(c.Bot(), c.Sender(), resp)
 	}
 }
 
@@ -231,7 +230,7 @@ func handleSearch() func(tb.Context) error {
 		if strings.TrimSpace(result) == "" {
 			return c.Send("no results")
 		}
-		return c.Send(result)
+		return replyLong(c, result)
 	}
 }
 
@@ -248,7 +247,7 @@ func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "crypto", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -264,7 +263,7 @@ func handleTechDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "tech", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -280,7 +279,7 @@ func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "realestate", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -296,7 +295,7 @@ func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "business", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -312,7 +311,7 @@ func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "investment", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -328,7 +327,7 @@ func handleStartupDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "startup", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }
 
@@ -344,6 +343,6 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 			logger.L.Error("openai error", "digest", "global", "model", model, "err", err)
 			return c.Send(formatOpenAIError(err, model))
 		}
-		return c.Send(resp)
+		return replyLong(c, resp)
 	}
 }

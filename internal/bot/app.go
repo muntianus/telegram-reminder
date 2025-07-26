@@ -26,6 +26,9 @@ func New(cfg config.Config) (*Bot, error) {
 	if cfg.OpenAIModel != "" {
 		CurrentModel = cfg.OpenAIModel
 	}
+	if cfg.OpenAIMaxTokens > 0 {
+		OpenAIMaxTokens = cfg.OpenAIMaxTokens
+	}
 	EnableWebSearch = cfg.EnableWebSearch
 	SearchProviderURL = cfg.SearchProviderURL
 
