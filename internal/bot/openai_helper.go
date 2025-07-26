@@ -78,6 +78,14 @@ type ChatCompleter interface {
 //   - error: Any error that occurred during the API call
 func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.ChatCompletionMessage, model string) (string, error) {
 	logger.L.Debug("chat completion", "model", model, "messages", len(msgs))
+	if len(msgs) == 0 {
+		return "", nil
+	}
+	for _, m := range msgs {
+		if strings.TrimSpace(m.Content) == "" {
+			return "", nil
+		}
+	}
 	// Append current date and time as a system message
 	timeMsg := openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
