@@ -67,6 +67,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 	}
 	if reqBody.Stream {
 		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
 		var buf strings.Builder
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
@@ -172,6 +173,7 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
 	var buf strings.Builder
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
