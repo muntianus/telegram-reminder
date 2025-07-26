@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -19,9 +20,10 @@ var ResponsesEndpoint = "https://api.openai.com/v1/responses"
 
 // ResponseRequest is the payload for the /v1/responses endpoint.
 type ResponseRequest struct {
-	Model string         `json:"model"`
-	Tools []ResponseTool `json:"tools,omitempty"`
-	Input string         `json:"input"`
+	Model  string         `json:"model"`
+	Tools  []ResponseTool `json:"tools,omitempty"`
+	Input  string         `json:"input"`
+	Stream bool           `json:"stream"`
 }
 
 type ResponseTool struct {
@@ -57,14 +59,42 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= 400 {
+		data, _ := io.ReadAll(resp.Body)
+		logger.L.Debug("responses api status", "status", resp.Status, "body", string(data))
+		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+		return "", err
+	}
+	if reqBody.Stream {
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
+		var buf strings.Builder
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || line == "data: [DONE]" {
+				continue
+			}
+			line = strings.TrimPrefix(line, "data:")
+			var chunk responseResult
+			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
+				buf.WriteString(chunk.OutputText)
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			logger.L.Debug("responses api read", "err", err)
+			return "", err
+		}
+		out := strings.TrimSpace(buf.String())
+		if out == "" {
+			logger.L.Debug("responses api empty output")
+			return "", errors.New("openai: empty response")
+		}
+		logger.L.Debug("responses api result", "bytes", len(out))
+		return out, nil
+	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.L.Debug("responses api read", "err", err)
-		return "", err
-	}
-	if resp.StatusCode >= 400 {
-		logger.L.Debug("responses api status", "status", resp.Status, "body", string(data))
-		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
 		return "", err
 	}
 	var res responseResult
@@ -85,11 +115,12 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 // ResponsesCompletion sends input to the OpenAI responses API and returns output text.
 func ResponsesCompletion(ctx context.Context, apiKey, input, model string) (string, error) {
 	req := ResponseRequest{
-		Model: model,
-		Input: input,
+		Model:  model,
+		Input:  input,
+		Stream: true,
 	}
 	if EnableWebSearch && supportsWebSearch(model) {
-		req.Tools = []ResponseTool{{Type: "web_search_preview"}}
+		req.Tools = []ResponseTool{{Type: "web_search"}}
 	}
 	return callResponsesAPI(ctx, apiKey, req, "")
 }
@@ -109,27 +140,10 @@ func markdownToTelegramHTML(input string) string {
 // web_search function and returns the result formatted for Telegram HTML.
 func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, error) {
 	reqBody := map[string]any{
-		"model": model,
-		"input": []map[string]string{{"role": "user", "content": prompt}},
-		"tools": []map[string]any{
-			{
-				"type": "function",
-				"function": map[string]any{
-					"name":        "web_search",
-					"description": "Search the web for information",
-					"parameters": map[string]any{
-						"type": "object",
-						"properties": map[string]any{
-							"query": map[string]string{
-								"type":        "string",
-								"description": "Search query",
-							},
-						},
-						"required": []string{"query"},
-					},
-				},
-			},
-		},
+		"model":  model,
+		"input":  []map[string]string{{"role": "user", "content": prompt}},
+		"tools":  []map[string]any{{"type": "web_search"}},
+		"stream": true,
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -158,24 +172,39 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 		return "", err
 	}
 
-	var res struct {
-		Output []struct {
-			Type    string `json:"type"`
-			Content []struct {
-				Type string `json:"type"`
-				Text string `json:"text"`
-			} `json:"content"`
-		} `json:"output"`
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
+	var buf strings.Builder
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || line == "data: [DONE]" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "data:")
+		var res struct {
+			Output []struct {
+				Type    string `json:"type"`
+				Content []struct {
+					Type string `json:"type"`
+					Text string `json:"text"`
+				} `json:"content"`
+			} `json:"output"`
+		}
+		if err := json.Unmarshal([]byte(line), &res); err == nil {
+			if len(res.Output) > 0 && len(res.Output[len(res.Output)-1].Content) > 0 {
+				buf.WriteString(res.Output[len(res.Output)-1].Content[0].Text)
+			}
+		}
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		logger.L.Debug("responses api decode", "err", err)
+	if err := scanner.Err(); err != nil {
+		logger.L.Debug("responses api read", "err", err)
 		return "", err
 	}
-	if len(res.Output) == 0 || len(res.Output[len(res.Output)-1].Content) == 0 {
+	out := strings.TrimSpace(buf.String())
+	if out == "" {
 		return "", errors.New("openai: empty response")
 	}
-
-	out := markdownToTelegramHTML(res.Output[len(res.Output)-1].Content[0].Text)
+	out = markdownToTelegramHTML(out)
 	logger.L.Debug("responses api result", "bytes", len(out))
 	return out, nil
 }
