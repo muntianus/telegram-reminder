@@ -73,9 +73,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 			if line == "" || line == "data: [DONE]" {
 				continue
 			}
-			if strings.HasPrefix(line, "data:") {
-				line = strings.TrimPrefix(line, "data:")
-			}
+			line = strings.TrimPrefix(line, "data:")
 			var chunk responseResult
 			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
 				buf.WriteString(chunk.OutputText)
@@ -180,9 +178,7 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 		if line == "" || line == "data: [DONE]" {
 			continue
 		}
-		if strings.HasPrefix(line, "data:") {
-			line = strings.TrimPrefix(line, "data:")
-		}
+		line = strings.TrimPrefix(line, "data:")
 		var res struct {
 			Output []struct {
 				Type    string `json:"type"`
