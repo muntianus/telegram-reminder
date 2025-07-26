@@ -136,6 +136,9 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 			if err != nil {
 				res = err.Error()
 			}
+			if strings.TrimSpace(res) == "" {
+				res = "no results"
+			}
 			toolMsgs = append(toolMsgs, openai.ChatCompletionMessage{
 				Role:       openai.ChatMessageRoleTool,
 				ToolCallID: tc.ID,
