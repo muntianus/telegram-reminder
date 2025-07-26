@@ -41,7 +41,7 @@ func TestLunchCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.LunchIdeaPrompt, "o3")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.LunchIdeaPrompt, "gpt-4.1")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}
@@ -71,7 +71,7 @@ func TestBriefCommand(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), botpkg.OpenAITimeout)
 		defer cancel()
 
-		text, err := botpkg.SystemCompletion(ctx, client, botpkg.DailyBriefPrompt, "o3")
+		text, err := botpkg.SystemCompletion(ctx, client, botpkg.DailyBriefPrompt, "gpt-4.1")
 		if err != nil {
 			return c.Send("OpenAI error")
 		}

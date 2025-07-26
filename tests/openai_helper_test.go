@@ -50,7 +50,7 @@ func TestChatCompletionWithError(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	_, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
+	_, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4.1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -64,7 +64,7 @@ func TestChatCompletionEmptyResponse(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestChatCompletionWhitespaceTrimming(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestSystemCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
 
-	_, err := botpkg.SystemCompletion(ctx, client, "test prompt", "o3")
+	_, err := botpkg.SystemCompletion(ctx, client, "test prompt", "gpt-4.1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -105,7 +105,7 @@ func TestUserCompletionWithError(t *testing.T) {
 	client := errorClient{}
 	ctx := context.Background()
 
-	_, err := botpkg.UserCompletion(ctx, client, "test message", "o3")
+	_, err := botpkg.UserCompletion(ctx, client, "test message", "gpt-4.1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -119,7 +119,7 @@ func TestChatCompletionEmptyMessages(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{}
 
-	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "o3")
+	resp, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestSystemCompletionEmptyPrompt(t *testing.T) {
 	client := emptyResponseClient{}
 	ctx := context.Background()
 
-	resp, err := botpkg.SystemCompletion(ctx, client, "", "o3")
+	resp, err := botpkg.SystemCompletion(ctx, client, "", "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestUserCompletionEmptyMessage(t *testing.T) {
 	client := emptyResponseClient{}
 	ctx := context.Background()
 
-	resp, err := botpkg.UserCompletion(ctx, client, "", "o3")
+	resp, err := botpkg.UserCompletion(ctx, client, "", "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestWebSearchToolAdded(t *testing.T) {
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
 
-	if _, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4o"); err != nil {
+	if _, err := botpkg.ChatCompletion(ctx, client, msgs, "gpt-4.1"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(client.req.Tools) == 0 {
@@ -198,7 +198,7 @@ func TestEnhancedSystemCompletionUsesWebSearch(t *testing.T) {
 	defer func() { botpkg.EnableWebSearch = orig }()
 	client := &captureClient{}
 	ctx := context.Background()
-	_, err := botpkg.EnhancedSystemCompletion(ctx, client, "prompt", "gpt-4o")
+	_, err := botpkg.EnhancedSystemCompletion(ctx, client, "prompt", "gpt-4.1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

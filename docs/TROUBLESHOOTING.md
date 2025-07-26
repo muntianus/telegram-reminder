@@ -18,19 +18,19 @@
 ```bash
 export TELEGRAM_TOKEN=your_telegram_token
 export OPENAI_API_KEY=your_openai_api_key
-export OPENAI_MODEL=gpt-4o  # Временно используйте gpt-4o вместо o3
+export OPENAI_MODEL=gpt-4.1  # Используйте gpt-4.1
 ```
 
-#### 2. Временное решение: переключитесь на gpt-4o
+#### 2. Временное решение: убедитесь, что используется gpt-4.1
 
-Если проблема с моделью o3, временно переключитесь на gpt-4o:
+Если проблема с моделью, убедитесь, что используется gpt-4.1:
 
 ```bash
 # В боте используйте команду:
-/model gpt-4o
+ /model gpt-4.1
 
 # Или установите переменную окружения:
-export OPENAI_MODEL=gpt-4o
+export OPENAI_MODEL=gpt-4.1
 ```
 
 #### 3. Проверьте API ключ OpenAI

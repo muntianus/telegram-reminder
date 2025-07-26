@@ -43,6 +43,9 @@ func Load() (Config, error) {
 	logChatIDStr := os.Getenv(EnvLogChatID)
 	openaiKey := os.Getenv(EnvOpenAIKey)
 	openaiModel := os.Getenv(EnvOpenAIModel)
+	if openaiModel == "" {
+		openaiModel = "gpt-4.1"
+	}
 	blockchainAPI := os.Getenv(EnvBlockchainAPI)
 	enableWebSearchStr := os.Getenv(EnvEnableWebSearch)
 	searchProviderURL := os.Getenv(EnvSearchProviderURL)
