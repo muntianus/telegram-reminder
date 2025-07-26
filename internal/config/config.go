@@ -18,6 +18,7 @@ const (
 	EnvEnableWebSearch   = "ENABLE_WEB_SEARCH"
 	EnvSearchProviderURL = "SEARCH_PROVIDER_URL"
 	EnvOpenAIMaxTokens   = "OPENAI_MAX_TOKENS"
+	EnvOpenAIToolChoice  = "OPENAI_TOOL_CHOICE"
 )
 
 const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
@@ -34,6 +35,7 @@ type Config struct {
 	BlockchainAPI     string
 	EnableWebSearch   bool
 	SearchProviderURL string
+	OpenAIToolChoice  string
 }
 
 // Load reads environment variables and validates them.
@@ -52,6 +54,7 @@ func Load() (Config, error) {
 	enableWebSearchStr := os.Getenv(EnvEnableWebSearch)
 	searchProviderURL := os.Getenv(EnvSearchProviderURL)
 	maxTokensStr := os.Getenv(EnvOpenAIMaxTokens)
+	toolChoice := os.Getenv(EnvOpenAIToolChoice)
 
 	if telegramToken == "" || openaiKey == "" {
 		return cfg, fmt.Errorf("missing required env vars")
@@ -88,6 +91,10 @@ func Load() (Config, error) {
 		searchProviderURL = DefaultSearchProviderURL
 	}
 
+	if toolChoice == "" {
+		toolChoice = "auto"
+	}
+
 	maxTokens := 600
 	if maxTokensStr != "" {
 		if v, err := strconv.Atoi(maxTokensStr); err == nil {
@@ -105,6 +112,7 @@ func Load() (Config, error) {
 		BlockchainAPI:     blockchainAPI,
 		EnableWebSearch:   enableWebSearch,
 		SearchProviderURL: searchProviderURL,
+		OpenAIToolChoice:  toolChoice,
 	}
 
 	return cfg, nil
