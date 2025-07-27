@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"telegram-reminder/internal/logger"
@@ -35,6 +36,50 @@ var webSearchTool = openai.Tool{
 // overridden in tests.
 var searchFunc = defaultWebSearch
 
+type searchEntry struct {
+	result string
+	ts     time.Time
+}
+
+var (
+	searchCache    = map[string]searchEntry{}
+	searchCacheTTL = 10 * time.Minute
+	searchMu       sync.RWMutex
+	searchAPIFunc  = realSearchAPI
+)
+
+func realSearchAPI(ctx context.Context, query string) (string, error) {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		return "", fmt.Errorf("OPENAI_API_KEY not set")
+	}
+	return ResponsesCompletion(ctx, apiKey, query, CurrentModel)
+}
+
+func normalizeQuery(q string) string {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" {
+		return q
+	}
+	return strings.Join(strings.Fields(q), " ")
+}
+
+func getCachedSearch(query string) (string, bool) {
+	searchMu.RLock()
+	defer searchMu.RUnlock()
+	e, ok := searchCache[query]
+	if !ok || time.Since(e.ts) > searchCacheTTL {
+		return "", false
+	}
+	return e.result, true
+}
+
+func setCachedSearch(query, result string) {
+	searchMu.Lock()
+	defer searchMu.Unlock()
+	searchCache[query] = searchEntry{result: result, ts: time.Now()}
+}
+
 func supportsWebSearch(model string) bool {
 	for _, m := range SupportedModels {
 		if model == m {
@@ -48,11 +93,17 @@ func supportsWebSearch(model string) bool {
 // plain text result.
 func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	logger.L.Debug("web search", "query", query)
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY not set")
+	q := normalizeQuery(query)
+	if res, ok := getCachedSearch(q); ok {
+		logger.L.Debug("web search cache hit", "query", q)
+		return res, nil
 	}
-	return ResponsesCompletion(ctx, apiKey, query, CurrentModel)
+	res, err := searchAPIFunc(ctx, q)
+	if err != nil {
+		return "", err
+	}
+	setCachedSearch(q, res)
+	return res, nil
 }
 
 // ChatCompleter abstracts the OpenAI client method used by chatCompletion.
