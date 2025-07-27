@@ -75,6 +75,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 				continue
 			}
 			line = strings.TrimPrefix(line, "data:")
+			logger.L.Debug("responses api raw line", "line", line)
 			var chunk responseResult
 			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
 				buf.WriteString(chunk.OutputText)
@@ -97,6 +98,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api read", "err", err)
 		return "", err
 	}
+	logger.L.Debug("responses api raw", "body", string(data))
 	var res responseResult
 	if err := json.Unmarshal(data, &res); err != nil {
 		logger.L.Debug("responses api decode", "err", err)
