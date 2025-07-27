@@ -74,11 +74,33 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 			if line == "" || line == "data: [DONE]" {
 				continue
 			}
+			if strings.HasPrefix(line, "event:") {
+				// skip SSE event lines
+				continue
+			}
 			line = strings.TrimPrefix(line, "data:")
+			line = strings.TrimSpace(line)
 			logger.L.Debug("responses api raw line", "line", line)
-			var chunk responseResult
+			var chunk struct {
+				Type  string `json:"type"`
+				Delta struct {
+					Content    string `json:"content"`
+					OutputText string `json:"output_text"`
+				} `json:"delta"`
+				Content    string `json:"content"`
+				OutputText string `json:"output_text"`
+			}
 			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
-				buf.WriteString(chunk.OutputText)
+				switch {
+				case chunk.Delta.OutputText != "":
+					buf.WriteString(chunk.Delta.OutputText)
+				case chunk.Type == "response.output_text.delta" && chunk.Delta.Content != "":
+					buf.WriteString(chunk.Delta.Content)
+				case chunk.Type == "response.output_text.delta" && chunk.Content != "":
+					buf.WriteString(chunk.Content)
+				case chunk.OutputText != "":
+					buf.WriteString(chunk.OutputText)
+				}
 			}
 		}
 		if err := scanner.Err(); err != nil {
@@ -182,9 +204,20 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 		if line == "" || line == "data: [DONE]" {
 			continue
 		}
+		if strings.HasPrefix(line, "event:") {
+			continue
+		}
 		line = strings.TrimPrefix(line, "data:")
-		var res struct {
-			Output []struct {
+		line = strings.TrimSpace(line)
+		var chunk struct {
+			Type  string `json:"type"`
+			Delta struct {
+				Content    string `json:"content"`
+				OutputText string `json:"output_text"`
+			} `json:"delta"`
+			Content    string `json:"content"`
+			OutputText string `json:"output_text"`
+			Output     []struct {
 				Type    string `json:"type"`
 				Content []struct {
 					Type string `json:"type"`
@@ -192,9 +225,18 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 				} `json:"content"`
 			} `json:"output"`
 		}
-		if err := json.Unmarshal([]byte(line), &res); err == nil {
-			if len(res.Output) > 0 && len(res.Output[len(res.Output)-1].Content) > 0 {
-				buf.WriteString(res.Output[len(res.Output)-1].Content[0].Text)
+		if err := json.Unmarshal([]byte(line), &chunk); err == nil {
+			switch {
+			case chunk.Delta.OutputText != "":
+				buf.WriteString(chunk.Delta.OutputText)
+			case chunk.Type == "response.output_text.delta" && chunk.Delta.Content != "":
+				buf.WriteString(chunk.Delta.Content)
+			case chunk.Type == "response.output_text.delta" && chunk.Content != "":
+				buf.WriteString(chunk.Content)
+			case chunk.OutputText != "":
+				buf.WriteString(chunk.OutputText)
+			case len(chunk.Output) > 0 && len(chunk.Output[len(chunk.Output)-1].Content) > 0:
+				buf.WriteString(chunk.Output[len(chunk.Output)-1].Content[0].Text)
 			}
 		}
 	}

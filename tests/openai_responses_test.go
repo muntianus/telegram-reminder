@@ -28,8 +28,24 @@ func TestResponsesCompletion(t *testing.T) {
 		if len(req.Tools) == 0 || req.Tools[0].Type != "web_search" {
 			t.Fatalf("unexpected tools: %+v", req.Tools)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"output_text":"ok"}`))
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatal("no flusher")
+		}
+		chunks := []string{
+			`{"delta":{"output_text":"hello"}}`,
+			`{"delta":{"output_text":" world"}}`,
+		}
+		for _, c := range chunks {
+			_, _ = w.Write([]byte("event: thread.message.delta\n"))
+			_, _ = w.Write([]byte("data: " + c + "\n\n"))
+			flusher.Flush()
+		}
+		_, _ = w.Write([]byte("event: done\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		flusher.Flush()
 	}))
 	defer srv.Close()
 
@@ -39,7 +55,7 @@ func TestResponsesCompletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != "ok" {
+	if out != "hello world" {
 		t.Fatalf("unexpected output: %s", out)
 	}
 }
