@@ -346,3 +346,11 @@ func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
 		return replyLong(c, resp)
 	}
 }
+
+// handleWebDoc sends the web search documentation snippet to the user.
+func handleWebDoc() func(tb.Context) error {
+	return func(c tb.Context) error {
+		logger.L.Debug("command webdoc", "chat", c.Chat().ID)
+		return replyLong(c, WebSearchDoc)
+	}
+}
