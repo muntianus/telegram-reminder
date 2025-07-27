@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -58,5 +59,38 @@ func TestChatCompletionEmptySearchResult(t *testing.T) {
 	}
 	if resp != "ok" {
 		t.Fatalf("unexpected response %q", resp)
+	}
+}
+
+func TestNormalizeQuery(t *testing.T) {
+	q := normalizeQuery("  HeLLo   WORLD ")
+	if q != "hello world" {
+		t.Fatalf("unexpected normalized query: %q", q)
+	}
+}
+
+func TestSearchCaching(t *testing.T) {
+	searchMu.Lock()
+	searchCache = map[string]searchEntry{}
+	searchCacheTTL = time.Hour
+	searchMu.Unlock()
+
+	called := 0
+	origAPI := searchAPIFunc
+	searchAPIFunc = func(ctx context.Context, q string) (string, error) {
+		called++
+		return "ok", nil
+	}
+	defer func() { searchAPIFunc = origAPI }()
+
+	ctx := context.Background()
+	if _, err := defaultWebSearch(ctx, "Test Query"); err != nil {
+		t.Fatalf("first call error: %v", err)
+	}
+	if _, err := defaultWebSearch(ctx, "test  QUERY"); err != nil {
+		t.Fatalf("second call error: %v", err)
+	}
+	if called != 1 {
+		t.Fatalf("expected 1 api call, got %d", called)
 	}
 }
