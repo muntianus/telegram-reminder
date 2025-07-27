@@ -43,3 +43,36 @@ func TestResponsesCompletion(t *testing.T) {
 		t.Fatalf("unexpected output: %s", out)
 	}
 }
+
+func TestResponsesCompletionDelta(t *testing.T) {
+	orig := botpkg.EnableWebSearch
+	botpkg.EnableWebSearch = false
+	defer func() { botpkg.EnableWebSearch = orig }()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req botpkg.ResponseRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if !req.Stream {
+			t.Fatalf("stream not enabled")
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(
+			"event: start\n" +
+				"data: {\"type\":\"response.output_text.delta\",\"delta\":{\"content\":\"foo \"}}\n" +
+				"data: {\"type\":\"response.output_text.delta\",\"delta\":{\"content\":\"bar\"}}\n" +
+				"data: [DONE]\n"))
+	}))
+	defer srv.Close()
+
+	botpkg.ResponsesEndpoint = srv.URL + "/v1/responses"
+	ctx := context.Background()
+	out, err := botpkg.ResponsesCompletion(ctx, "key", "hi", "gpt-4.1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "foo bar" {
+		t.Fatalf("unexpected output: %q", out)
+	}
+}
