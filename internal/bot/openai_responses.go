@@ -89,7 +89,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 			logger.L.Debug("responses api empty output")
 			return "", errors.New("openai: empty response")
 		}
-		logger.L.Debug("responses api result", "bytes", len(out))
+		logger.L.Debug("responses api result", "bytes", len(out), "preview", logger.Truncate(out, 200))
 		return out, nil
 	}
 	data, err := io.ReadAll(resp.Body)
@@ -108,7 +108,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api empty output", "body", string(data))
 		return "", errors.New("openai: empty response")
 	}
-	logger.L.Debug("responses api result", "bytes", len(out))
+	logger.L.Debug("responses api result", "bytes", len(out), "preview", logger.Truncate(out, 200))
 	return out, nil
 }
 
@@ -205,6 +205,6 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 		return "", errors.New("openai: empty response")
 	}
 	out = markdownToTelegramHTML(out)
-	logger.L.Debug("responses api result", "bytes", len(out))
+	logger.L.Debug("responses api result", "bytes", len(out), "preview", logger.Truncate(out, 200))
 	return out, nil
 }

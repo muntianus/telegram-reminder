@@ -171,7 +171,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
-	logger.L.Debug("openai result", "length", len(out))
+	logger.L.Debug("openai result", "length", len(out), "preview", logger.Truncate(out, 200))
 	return out, nil
 }
 
