@@ -31,6 +31,9 @@ func New(cfg config.Config) (*Bot, error) {
 	}
 	EnableWebSearch = cfg.EnableWebSearch
 	OpenAIToolChoice = cfg.OpenAIToolChoice
+	if cfg.WebSearchRecency > 0 {
+		WebSearchRecencyDays = cfg.WebSearchRecency
+	}
 
 	tele, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
 	if err != nil {

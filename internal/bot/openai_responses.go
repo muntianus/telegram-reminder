@@ -20,10 +20,16 @@ var ResponsesEndpoint = "https://api.openai.com/v1/responses"
 
 // ResponseRequest is the payload for the /v1/responses endpoint.
 type ResponseRequest struct {
-	Model  string         `json:"model"`
-	Tools  []ResponseTool `json:"tools,omitempty"`
-	Input  string         `json:"input"`
-	Stream bool           `json:"stream"`
+	Model            string            `json:"model"`
+	Tools            []ResponseTool    `json:"tools,omitempty"`
+	Input            string            `json:"input"`
+	Stream           bool              `json:"stream"`
+	WebSearchOptions *WebSearchOptions `json:"web_search_options,omitempty"`
+}
+
+type WebSearchOptions struct {
+	RecencyDays       int    `json:"recency_days,omitempty"`
+	SearchContextSize string `json:"search_context_size,omitempty"`
 }
 
 type ResponseTool struct {
@@ -121,6 +127,7 @@ func ResponsesCompletion(ctx context.Context, apiKey, input, model string) (stri
 	}
 	if EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []ResponseTool{{Type: "web_search"}}
+		req.WebSearchOptions = &WebSearchOptions{RecencyDays: WebSearchRecencyDays, SearchContextSize: "low"}
 	}
 	return callResponsesAPI(ctx, apiKey, req, "")
 }
@@ -140,10 +147,11 @@ func markdownToTelegramHTML(input string) string {
 // web_search function and returns the result formatted for Telegram HTML.
 func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, error) {
 	reqBody := map[string]any{
-		"model":  model,
-		"input":  []map[string]string{{"role": "user", "content": prompt}},
-		"tools":  []map[string]any{{"type": "web_search"}},
-		"stream": true,
+		"model":              model,
+		"input":              []map[string]string{{"role": "user", "content": prompt}},
+		"tools":              []map[string]any{{"type": "web_search"}},
+		"web_search_options": map[string]any{"recency_days": WebSearchRecencyDays, "search_context_size": "low"},
+		"stream":             true,
 	}
 
 	body, err := json.Marshal(reqBody)

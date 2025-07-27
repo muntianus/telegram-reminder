@@ -15,12 +15,13 @@ func TestLoadConfigSuccess(t *testing.T) {
 	t.Setenv(config.EnvBlockchainAPI, "http://example.com")
 	t.Setenv(config.EnvEnableWebSearch, "true")
 	t.Setenv(config.EnvOpenAIToolChoice, "none")
+	t.Setenv(config.EnvWebSearchRecency, "2")
 
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.LogChatID != 100 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" || cfg.BlockchainAPI != "http://example.com" || !cfg.EnableWebSearch || cfg.OpenAIToolChoice != "none" {
+	if cfg.TelegramToken != "token" || cfg.ChatID != 99 || cfg.LogChatID != 100 || cfg.OpenAIKey != "key" || cfg.OpenAIModel != "model" || cfg.BlockchainAPI != "http://example.com" || !cfg.EnableWebSearch || cfg.OpenAIToolChoice != "none" || cfg.WebSearchRecency != 2 {
 		t.Fatalf("unexpected values: %+v", cfg)
 	}
 }
@@ -79,6 +80,7 @@ func TestLoadConfigDefaults(t *testing.T) {
 	t.Setenv(config.EnvOpenAIKey, "key")
 	t.Setenv(config.EnvEnableWebSearch, "")
 	t.Setenv(config.EnvOpenAIToolChoice, "")
+	t.Setenv(config.EnvWebSearchRecency, "")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -89,5 +91,8 @@ func TestLoadConfigDefaults(t *testing.T) {
 	}
 	if cfg.OpenAIToolChoice != "auto" {
 		t.Fatalf("expected default tool choice 'auto'")
+	}
+	if cfg.WebSearchRecency != 1 {
+		t.Fatalf("expected default recency 1")
 	}
 }

@@ -28,6 +28,9 @@ func TestResponsesCompletion(t *testing.T) {
 		if len(req.Tools) == 0 || req.Tools[0].Type != "web_search" {
 			t.Fatalf("unexpected tools: %+v", req.Tools)
 		}
+		if req.WebSearchOptions == nil || req.WebSearchOptions.RecencyDays != 1 {
+			t.Fatalf("unexpected search options: %+v", req.WebSearchOptions)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"output_text":"ok"}`))
 	}))
