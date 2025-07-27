@@ -76,9 +76,16 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 			}
 			line = strings.TrimPrefix(line, "data:")
 			logger.L.Debug("responses api raw line", "line", line)
-			var chunk responseResult
+			var chunk struct {
+				Delta      *responseResult `json:"delta"`
+				OutputText string          `json:"output_text"`
+			}
 			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
-				buf.WriteString(chunk.OutputText)
+				if chunk.OutputText != "" {
+					buf.WriteString(chunk.OutputText)
+				} else if chunk.Delta != nil {
+					buf.WriteString(chunk.Delta.OutputText)
+				}
 			}
 		}
 		if err := scanner.Err(); err != nil {
