@@ -69,34 +69,52 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CHAT_ID: ${{ secrets.CHAT_ID }}
+      LOG_CHAT_ID: ${{ secrets.LOG_CHAT_ID }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
     steps:
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      - name: Deploy to VPS
+      - name: Create .env file
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} <<'EOSSH'
+          cat <<EOF > .env
+          TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          CHAT_ID=${CHAT_ID}
+          LOG_CHAT_ID=${LOG_CHAT_ID}
+          OPENAI_MODEL=${OPENAI_MODEL}
+          DOCKERHUB_USER=${DOCKERHUB_USER}
+          EOF
+
+      - name: Copy .env to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: ".env"
+          target: "/opt/telegram-reminder/telegram-reminder"
+
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
             set -e
             cd /opt/telegram-reminder/telegram-reminder
-
-            cat <<EOF > .env
-            TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            CHAT_ID=${{ secrets.CHAT_ID }}
-            LOG_CHAT_ID=${{ secrets.LOG_CHAT_ID }}
-            OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}
-            DOCKERHUB_USER=${{ secrets.DOCKERHUB_USER }}
-              EOF
-              sed -i 's/^ *//' .env
-
-            cat .env
             docker compose pull
             docker compose down || true
             docker compose up -d
             docker exec telegram-reminder env | grep TELEGRAM || true
-          EOSSH
 
   deploy-mcp:
     needs: build
