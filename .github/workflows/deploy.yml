@@ -76,6 +76,21 @@ jobs:
       LOG_CHAT_ID: ${{ secrets.LOG_CHAT_ID }}
       OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      BLOCKCHAIN_API: ${{ secrets.BLOCKCHAIN_API }}
+      BRIEF_TIME: ${{ secrets.BRIEF_TIME }}
+      CIAN_API: ${{ secrets.CIAN_API }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      ENABLE_WEB_SEARCH: ${{ secrets.ENABLE_WEB_SEARCH }}
+      LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
+      OPENAI_MAX_TOKENS: ${{ secrets.OPENAI_MAX_TOKENS }}
+      LUNCH_TIME: ${{ secrets.LUNCH_TIME }}
+      OPENAI_TOOL_CHOICE: ${{ secrets.OPENAI_TOOL_CHOICE }}
+      SEARCH_PROVIDER_URL: ${{ secrets.SEARCH_PROVIDER_URL }}
+      TASKS_FILE: ${{ secrets.TASKS_FILE }}
+      TOKEN_GITHUB: ${{ secrets.TOKEN_GITHUB }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_SSH_KEY: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
     steps:
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.5.4
@@ -91,6 +106,19 @@ jobs:
           LOG_CHAT_ID=${LOG_CHAT_ID}
           OPENAI_MODEL=${OPENAI_MODEL}
           DOCKERHUB_USER=${DOCKERHUB_USER}
+          BRIEF_TIME=${BRIEF_TIME}
+          CIAN_API=${CIAN_API}
+          ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH}
+          LOG_LEVEL=${LOG_LEVEL}
+          OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS}
+          LUNCH_TIME=${LUNCH_TIME}
+          OPENAI_TOOL_CHOICE=${OPENAI_TOOL_CHOICE}
+          SEARCH_PROVIDER_URL=${SEARCH_PROVIDER_URL}
+          TASKS_FILE=${TASKS_FILE}
+          TOKEN_GITHUB=${TOKEN_GITHUB}
+          VPS_HOST=${VPS_HOST}
+          VPS_SSH_KEY=${VPS_SSH_KEY}
+          VPS_USER=${VPS_USER}
           EOF
 
       - name: Copy .env to server
