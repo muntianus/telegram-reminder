@@ -22,9 +22,6 @@ func TestResponsesCompletion(t *testing.T) {
 		if req.Model != "gpt-4.1" {
 			t.Fatalf("model: %s", req.Model)
 		}
-		if !req.Stream {
-			t.Fatalf("stream not enabled")
-		}
 		if len(req.Tools) == 0 || req.Tools[0].Type != "web_search" {
 			t.Fatalf("unexpected tools: %+v", req.Tools)
 		}
@@ -54,15 +51,8 @@ func TestResponsesCompletionDelta(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
-		if !req.Stream {
-			t.Fatalf("stream not enabled")
-		}
-		w.Header().Set("Content-Type", "text/event-stream")
-		_, _ = w.Write([]byte(
-			"event: start\n" +
-				"data: {\"type\":\"response.output_text.delta\",\"delta\":{\"content\":\"foo \"}}\n" +
-				"data: {\"type\":\"response.output_text.delta\",\"delta\":{\"content\":\"bar\"}}\n" +
-				"data: [DONE]\n"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"output_text":"foo bar"}`))
 	}))
 	defer srv.Close()
 

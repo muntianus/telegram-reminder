@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -20,10 +19,9 @@ var ResponsesEndpoint = "https://api.openai.com/v1/responses"
 
 // ResponseRequest is the payload for the /v1/responses endpoint.
 type ResponseRequest struct {
-	Model  string         `json:"model"`
-	Tools  []ResponseTool `json:"tools,omitempty"`
-	Input  string         `json:"input"`
-	Stream bool           `json:"stream"`
+	Model string         `json:"model"`
+	Tools []ResponseTool `json:"tools,omitempty"`
+	Input string         `json:"input"`
 }
 
 type ResponseTool struct {
@@ -65,53 +63,6 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
 		return "", err
 	}
-	if reqBody.Stream {
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
-		var buf strings.Builder
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" || line == "data: [DONE]" {
-				continue
-			}
-			if strings.HasPrefix(line, "event:") {
-				// skip SSE event lines
-				continue
-			}
-			line = strings.TrimPrefix(line, "data:")
-			line = strings.TrimSpace(line)
-			logger.L.Debug("responses api raw line", "line", line)
-			var chunk struct {
-				Type  string `json:"type"`
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-				Content    string `json:"content"`
-				OutputText string `json:"output_text"`
-			}
-			if err := json.Unmarshal([]byte(line), &chunk); err == nil {
-				switch {
-				case chunk.Type == "response.output_text.delta" && chunk.Delta.Content != "":
-					buf.WriteString(chunk.Delta.Content)
-				case chunk.Type == "response.output_text.delta" && chunk.Content != "":
-					buf.WriteString(chunk.Content)
-				case chunk.OutputText != "":
-					buf.WriteString(chunk.OutputText)
-				}
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			logger.L.Debug("responses api read", "err", err)
-			return "", err
-		}
-		out := strings.TrimSpace(buf.String())
-		if out == "" {
-			logger.L.Debug("responses api empty output")
-			return "", errors.New("openai: empty response")
-		}
-		logger.L.Debug("responses api result", "bytes", len(out), "preview", logger.Truncate(out, 200))
-		return out, nil
-	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.L.Debug("responses api read", "err", err)
@@ -136,9 +87,8 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 // ResponsesCompletion sends input to the OpenAI responses API and returns output text.
 func ResponsesCompletion(ctx context.Context, apiKey, input, model string) (string, error) {
 	req := ResponseRequest{
-		Model:  model,
-		Input:  input,
-		Stream: true,
+		Model: model,
+		Input: input,
 	}
 	if EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []ResponseTool{{Type: "web_search"}}
@@ -160,86 +110,15 @@ func markdownToTelegramHTML(input string) string {
 // ChatResponses sends a prompt to the OpenAI responses API using a virtual
 // web_search function and returns the result formatted for Telegram HTML.
 func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, error) {
-	reqBody := map[string]any{
-		"model":  model,
-		"input":  []map[string]string{{"role": "user", "content": prompt}},
-		"tools":  []map[string]any{{"type": "web_search"}},
-		"stream": true,
+	req := ResponseRequest{
+		Model: model,
+		Input: prompt,
+		Tools: []ResponseTool{{Type: "web_search"}},
 	}
-
-	body, err := json.Marshal(reqBody)
+	out, err := callResponsesAPI(ctx, apiKey, req, "")
 	if err != nil {
 		return "", err
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ResponsesEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	client := logger.NewHTTPClient(OpenAITimeout)
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		logger.L.Debug("responses api error", "err", err)
-		return "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= http.StatusBadRequest {
-		data, _ := io.ReadAll(resp.Body)
-		err := fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
-		logger.L.Debug("responses api status", "status", resp.Status)
-		return "", err
-	}
-
-	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 0, 1024), 1024*1024)
-	var buf strings.Builder
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || line == "data: [DONE]" {
-			continue
-		}
-		if strings.HasPrefix(line, "event:") {
-			continue
-		}
-		line = strings.TrimPrefix(line, "data:")
-		line = strings.TrimSpace(line)
-		var chunk struct {
-			Type  string `json:"type"`
-			Delta struct {
-				Content string `json:"content"`
-			} `json:"delta"`
-			Content string `json:"content"`
-			Output  []struct {
-				Type    string `json:"type"`
-				Content []struct {
-					Type string `json:"type"`
-					Text string `json:"text"`
-				} `json:"content"`
-			} `json:"output"`
-		}
-		if err := json.Unmarshal([]byte(line), &chunk); err == nil {
-			switch {
-			case chunk.Type == "response.output_text.delta" && chunk.Delta.Content != "":
-				buf.WriteString(chunk.Delta.Content)
-			case chunk.Type == "response.output_text.delta" && chunk.Content != "":
-				buf.WriteString(chunk.Content)
-			case len(chunk.Output) > 0 && len(chunk.Output[len(chunk.Output)-1].Content) > 0:
-				buf.WriteString(chunk.Output[len(chunk.Output)-1].Content[0].Text)
-			}
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		logger.L.Debug("responses api read", "err", err)
-		return "", err
-	}
-	out := strings.TrimSpace(buf.String())
-	if out == "" {
-		return "", errors.New("openai: empty response")
 	}
 	out = markdownToTelegramHTML(out)
-	logger.L.Debug("responses api result", "bytes", len(out), "preview", logger.Truncate(out, 200))
 	return out, nil
 }
