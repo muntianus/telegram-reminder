@@ -138,3 +138,136 @@ func ChatResponses(ctx context.Context, apiKey, model, prompt string) (string, e
 	out = markdownToTelegramHTML(out)
 	return out, nil
 }
+
+// GetResponse fetches a previously created model response by ID and returns the
+// output text.
+func GetResponse(ctx context.Context, apiKey, id string) (string, error) {
+	url := fmt.Sprintf("%s/%s", ResponsesEndpoint, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	client := logger.NewHTTPClient(OpenAITimeout)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		data, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var res responseResult
+	if err := json.Unmarshal(data, &res); err != nil {
+		return "", err
+	}
+	out := ""
+	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
+		out = strings.TrimSpace(res.Output[0].Content[0].Text)
+	}
+	if out == "" {
+		return "", errors.New("openai: empty response")
+	}
+	return out, nil
+}
+
+// DeleteResponse deletes the response with the given ID.
+func DeleteResponse(ctx context.Context, apiKey, id string) error {
+	url := fmt.Sprintf("%s/%s", ResponsesEndpoint, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	client := logger.NewHTTPClient(OpenAITimeout)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		data, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
+// CancelResponse cancels a background response generation.
+func CancelResponse(ctx context.Context, apiKey, id string) (string, error) {
+	url := fmt.Sprintf("%s/%s/cancel", ResponsesEndpoint, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	client := logger.NewHTTPClient(OpenAITimeout)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		data, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var res responseResult
+	if err := json.Unmarshal(data, &res); err != nil {
+		return "", err
+	}
+	out := ""
+	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
+		out = strings.TrimSpace(res.Output[0].Content[0].Text)
+	}
+	if out == "" {
+		return "", errors.New("openai: empty response")
+	}
+	return out, nil
+}
+
+// InputItem represents an item used to generate a response.
+type InputItem struct {
+	ID      string            `json:"id"`
+	Type    string            `json:"type"`
+	Role    string            `json:"role"`
+	Content []responseContent `json:"content"`
+}
+
+// ListInputItems returns the list of input items for a response ID.
+func ListInputItems(ctx context.Context, apiKey, id string) ([]InputItem, error) {
+	url := fmt.Sprintf("%s/%s/input_items", ResponsesEndpoint, id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	client := logger.NewHTTPClient(OpenAITimeout)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		data, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var res struct {
+		Data []InputItem `json:"data"`
+	}
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, err
+	}
+	return res.Data, nil
+}
