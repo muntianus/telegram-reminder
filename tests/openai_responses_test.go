@@ -66,3 +66,56 @@ func TestResponsesCompletionDelta(t *testing.T) {
 		t.Fatalf("unexpected output: %q", out)
 	}
 }
+
+func TestGetDeleteCancelAndList(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/responses/123", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"get"}]}]}`))
+		case http.MethodDelete:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":"123","object":"response","deleted":true}`))
+		default:
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+	})
+	mux.HandleFunc("/v1/responses/123/cancel", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"cancel"}]}]}`))
+	})
+	mux.HandleFunc("/v1/responses/123/input_items", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"msg1","type":"message","role":"user","content":[{"type":"input_text","text":"hi"}]}]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	botpkg.ResponsesEndpoint = srv.URL + "/v1/responses"
+	ctx := context.Background()
+	out, err := botpkg.GetResponse(ctx, "k", "123")
+	if err != nil || out != "get" {
+		t.Fatalf("get: %v %s", err, out)
+	}
+	if err := botpkg.DeleteResponse(ctx, "k", "123"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	out, err = botpkg.CancelResponse(ctx, "k", "123")
+	if err != nil || out != "cancel" {
+		t.Fatalf("cancel: %v %s", err, out)
+	}
+	items, err := botpkg.ListInputItems(ctx, "k", "123")
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(items) != 1 || len(items[0].Content) == 0 || items[0].Content[0].Text != "hi" {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
