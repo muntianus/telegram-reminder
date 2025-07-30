@@ -145,6 +145,12 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		Model:    model,
 		Messages: msgs,
 	}
+	if OpenAIServiceTier != "" {
+		req.ServiceTier = OpenAIServiceTier
+	}
+	if OpenAIReasoningEffort != "" {
+		req.ReasoningEffort = OpenAIReasoningEffort
+	}
 	if EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []openai.Tool{webSearchTool}
 	}

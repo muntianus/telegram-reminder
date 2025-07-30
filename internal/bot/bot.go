@@ -70,6 +70,8 @@ const BlockchainTimeout = 10 * time.Second
 const TelegramMessageLimit = 4096
 
 var OpenAIMaxTokens = 600
+var OpenAIServiceTier openai.ServiceTier
+var OpenAIReasoningEffort string
 
 const Version = "0.1.0"
 
