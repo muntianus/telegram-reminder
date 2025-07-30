@@ -3,7 +3,9 @@ package bot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -110,6 +112,89 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 // This interface allows for easier testing and mocking of OpenAI API calls.
 type ChatCompleter interface {
 	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
+}
+
+// StreamChatCompletion sends messages to OpenAI using the streaming API and
+// returns a channel with incremental text parts as they are produced.
+func StreamChatCompletion(ctx context.Context, client *openai.Client, msgs []openai.ChatCompletionMessage, model string) (<-chan string, error) {
+	logger.L.Debug("chat completion stream", "model", model, "messages", len(msgs))
+	outCh := make(chan string)
+	if len(msgs) == 0 {
+		close(outCh)
+		return outCh, nil
+	}
+	for _, m := range msgs {
+		if strings.TrimSpace(m.Content) == "" {
+			close(outCh)
+			return outCh, nil
+		}
+	}
+	timeMsg := openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: fmt.Sprintf("Current datetime: %s", time.Now().Format(time.RFC3339)),
+	}
+	msgs = append(msgs, timeMsg)
+
+	req := openai.ChatCompletionRequest{
+		Model:    model,
+		Messages: msgs,
+		Stream:   true,
+	}
+	if OpenAIServiceTier != "" {
+		req.ServiceTier = OpenAIServiceTier
+	}
+	if OpenAIReasoningEffort != "" {
+		req.ReasoningEffort = OpenAIReasoningEffort
+	}
+	if EnableWebSearch && supportsWebSearch(model) {
+		req.Tools = []openai.Tool{webSearchTool}
+	}
+	if OpenAIToolChoice != "" {
+		req.ToolChoice = OpenAIToolChoice
+		if OpenAIToolChoice == "none" {
+			req.Tools = nil
+		}
+	}
+	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
+		req.MaxCompletionTokens = OpenAIMaxTokens
+	} else if strings.HasPrefix(model, "gpt-4o") {
+		req.Temperature = 0.9
+		req.MaxTokens = OpenAIMaxTokens
+	} else {
+		req.Temperature = 0.9
+		req.MaxTokens = OpenAIMaxTokens
+	}
+
+	stream, err := client.CreateChatCompletionStream(ctx, req)
+	if err != nil {
+		logger.L.Debug("openai stream error", "err", err)
+		close(outCh)
+		return outCh, err
+	}
+
+	go func() {
+		defer func() { _ = stream.Close(); close(outCh) }()
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				logger.L.Debug("stream recv error", "err", err)
+				return
+			}
+			if len(resp.Choices) == 0 {
+				continue
+			}
+			delta := resp.Choices[0].Delta.Content
+			if strings.TrimSpace(delta) == "" {
+				continue
+			}
+			outCh <- delta
+		}
+	}()
+
+	return outCh, nil
 }
 
 // ChatCompletion sends messages to OpenAI and returns the reply text using the specified model.
