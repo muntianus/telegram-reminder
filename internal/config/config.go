@@ -9,30 +9,34 @@ import (
 
 // Environment variable names
 const (
-	EnvTelegramToken    = "TELEGRAM_TOKEN"
-	EnvChatID           = "CHAT_ID"
-	EnvLogChatID        = "LOG_CHAT_ID"
-	EnvOpenAIKey        = "OPENAI_API_KEY"
-	EnvOpenAIModel      = "OPENAI_MODEL"
-	EnvBlockchainAPI    = "BLOCKCHAIN_API"
-	EnvEnableWebSearch  = "ENABLE_WEB_SEARCH"
-	EnvOpenAIMaxTokens  = "OPENAI_MAX_TOKENS"
-	EnvOpenAIToolChoice = "OPENAI_TOOL_CHOICE"
+	EnvTelegramToken         = "TELEGRAM_TOKEN"
+	EnvChatID                = "CHAT_ID"
+	EnvLogChatID             = "LOG_CHAT_ID"
+	EnvOpenAIKey             = "OPENAI_API_KEY"
+	EnvOpenAIModel           = "OPENAI_MODEL"
+	EnvBlockchainAPI         = "BLOCKCHAIN_API"
+	EnvEnableWebSearch       = "ENABLE_WEB_SEARCH"
+	EnvOpenAIMaxTokens       = "OPENAI_MAX_TOKENS"
+	EnvOpenAIToolChoice      = "OPENAI_TOOL_CHOICE"
+	EnvOpenAIServiceTier     = "OPENAI_SERVICE_TIER"
+	EnvOpenAIReasoningEffort = "OPENAI_REASONING_EFFORT"
 )
 
 const DefaultBlockchainAPI = "https://api.blockchain.info/stats"
 
 // Config holds environment configuration values.
 type Config struct {
-	TelegramToken    string
-	ChatID           int64
-	LogChatID        int64
-	OpenAIKey        string
-	OpenAIModel      string
-	OpenAIMaxTokens  int
-	BlockchainAPI    string
-	EnableWebSearch  bool
-	OpenAIToolChoice string
+	TelegramToken         string
+	ChatID                int64
+	LogChatID             int64
+	OpenAIKey             string
+	OpenAIModel           string
+	OpenAIMaxTokens       int
+	BlockchainAPI         string
+	EnableWebSearch       bool
+	OpenAIToolChoice      string
+	OpenAIServiceTier     string
+	OpenAIReasoningEffort string
 }
 
 // Load reads environment variables and validates them.
@@ -51,6 +55,8 @@ func Load() (Config, error) {
 	enableWebSearchStr := os.Getenv(EnvEnableWebSearch)
 	maxTokensStr := os.Getenv(EnvOpenAIMaxTokens)
 	toolChoice := os.Getenv(EnvOpenAIToolChoice)
+	serviceTier := os.Getenv(EnvOpenAIServiceTier)
+	reasoningEffort := os.Getenv(EnvOpenAIReasoningEffort)
 
 	if telegramToken == "" || openaiKey == "" {
 		return cfg, fmt.Errorf("missing required env vars")
@@ -95,15 +101,17 @@ func Load() (Config, error) {
 	}
 
 	cfg = Config{
-		TelegramToken:    telegramToken,
-		ChatID:           chatID,
-		LogChatID:        logChatID,
-		OpenAIKey:        openaiKey,
-		OpenAIModel:      openaiModel,
-		OpenAIMaxTokens:  maxTokens,
-		BlockchainAPI:    blockchainAPI,
-		EnableWebSearch:  enableWebSearch,
-		OpenAIToolChoice: toolChoice,
+		TelegramToken:         telegramToken,
+		ChatID:                chatID,
+		LogChatID:             logChatID,
+		OpenAIKey:             openaiKey,
+		OpenAIModel:           openaiModel,
+		OpenAIMaxTokens:       maxTokens,
+		BlockchainAPI:         blockchainAPI,
+		EnableWebSearch:       enableWebSearch,
+		OpenAIToolChoice:      toolChoice,
+		OpenAIServiceTier:     serviceTier,
+		OpenAIReasoningEffort: reasoningEffort,
 	}
 
 	return cfg, nil

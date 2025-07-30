@@ -31,6 +31,8 @@ func New(cfg config.Config) (*Bot, error) {
 	}
 	EnableWebSearch = cfg.EnableWebSearch
 	OpenAIToolChoice = cfg.OpenAIToolChoice
+	OpenAIServiceTier = openai.ServiceTier(cfg.OpenAIServiceTier)
+	OpenAIReasoningEffort = cfg.OpenAIReasoningEffort
 
 	tele, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
 	if err != nil {
