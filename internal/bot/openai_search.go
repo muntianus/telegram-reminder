@@ -18,6 +18,7 @@ func OpenAISearch(query string) (string, error) {
 		logger.L.Debug("openai search error", "err", err)
 		return "", err
 	}
+	out = markdownToTelegramHTML(out)
 	logger.L.Debug("openai search result", "bytes", len(out))
 	return out, nil
 }

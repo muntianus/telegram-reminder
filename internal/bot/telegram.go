@@ -13,7 +13,7 @@ func sendLong(b *tb.Bot, to tb.Recipient, text string) error {
 		if len(runes) < end {
 			end = len(runes)
 		}
-		if _, err := b.Send(to, string(runes[:end])); err != nil {
+		if _, err := b.Send(to, string(runes[:end]), tb.ModeHTML); err != nil {
 			return err
 		}
 		runes = runes[end:]
@@ -30,7 +30,7 @@ func replyLong(c tb.Context, text string) error {
 		if len(runes) < end {
 			end = len(runes)
 		}
-		if err := c.Send(string(runes[:end])); err != nil {
+		if err := c.Send(string(runes[:end]), tb.ModeHTML); err != nil {
 			return err
 		}
 		runes = runes[end:]
