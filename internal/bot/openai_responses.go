@@ -29,8 +29,21 @@ type ResponseTool struct {
 }
 
 // responseResult is the minimal response structure we care about.
+// responseContent represents a single content part in the Responses API output.
+type responseContent struct {
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
+}
+
+// responseOutput represents an output item returned by the Responses API.
+type responseOutput struct {
+	Type    string            `json:"type"`
+	Content []responseContent `json:"content"`
+}
+
+// responseResult contains only the fields we need from the Responses API.
 type responseResult struct {
-	OutputText string `json:"output_text"`
+	Output []responseOutput `json:"output"`
 }
 
 // callResponsesAPI performs a request to the given responses endpoint.
@@ -75,7 +88,10 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api body", "body", string(data))
 		return "", err
 	}
-	out := strings.TrimSpace(res.OutputText)
+	out := ""
+	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
+		out = strings.TrimSpace(res.Output[0].Content[0].Text)
+	}
 	if out == "" {
 		logger.L.Debug("responses api empty output", "body", string(data))
 		return "", errors.New("openai: empty response")

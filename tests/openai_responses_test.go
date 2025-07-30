@@ -26,7 +26,7 @@ func TestResponsesCompletion(t *testing.T) {
 			t.Fatalf("unexpected tools: %+v", req.Tools)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"output_text":"ok"}`))
+		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"ok"}]}]}`))
 	}))
 	defer srv.Close()
 
@@ -52,7 +52,7 @@ func TestResponsesCompletionDelta(t *testing.T) {
 			t.Fatalf("decode: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"output_text":"foo bar"}`))
+		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"foo bar"}]}]}`))
 	}))
 	defer srv.Close()
 
