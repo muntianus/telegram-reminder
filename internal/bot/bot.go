@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
+	"html"
 	"os"
 	"strings"
 	"sync"
@@ -135,7 +136,7 @@ var baseCommands = []string{
 func buildCommandsList(tasks []Task) string {
 	var sb strings.Builder
 	for _, cmd := range baseCommands {
-		sb.WriteString(cmd)
+		sb.WriteString(html.EscapeString(cmd))
 		sb.WriteByte('\n')
 	}
 	if len(tasks) > 0 {
