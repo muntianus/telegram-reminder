@@ -155,9 +155,9 @@ func TestUserCompletionEmptyMessage(t *testing.T) {
 }
 
 func TestWebSearchToolAdded(t *testing.T) {
-	orig := botpkg.EnableWebSearch
-	botpkg.EnableWebSearch = true
-	defer func() { botpkg.EnableWebSearch = orig }()
+	orig := botpkg.GetEnableWebSearch()
+	botpkg.SetEnableWebSearch(true)
+	defer func() { botpkg.SetEnableWebSearch(orig) }()
 	client := &captureClient{}
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
@@ -177,9 +177,9 @@ func TestWebSearchToolAdded(t *testing.T) {
 }
 
 func TestWebSearchToolNotAddedForUnsupportedModel(t *testing.T) {
-	orig := botpkg.EnableWebSearch
-	botpkg.EnableWebSearch = true
-	defer func() { botpkg.EnableWebSearch = orig }()
+	orig := botpkg.GetEnableWebSearch()
+	botpkg.SetEnableWebSearch(true)
+	defer func() { botpkg.SetEnableWebSearch(orig) }()
 	client := &captureClient{}
 	ctx := context.Background()
 	msgs := []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "test"}}
@@ -193,9 +193,9 @@ func TestWebSearchToolNotAddedForUnsupportedModel(t *testing.T) {
 }
 
 func TestEnhancedSystemCompletionUsesWebSearch(t *testing.T) {
-	orig := botpkg.EnableWebSearch
-	botpkg.EnableWebSearch = true
-	defer func() { botpkg.EnableWebSearch = orig }()
+	orig := botpkg.GetEnableWebSearch()
+	botpkg.SetEnableWebSearch(true)
+	defer func() { botpkg.SetEnableWebSearch(orig) }()
 	client := &captureClient{}
 	ctx := context.Background()
 	_, err := botpkg.EnhancedSystemCompletion(ctx, client, "prompt", "gpt-4.1")

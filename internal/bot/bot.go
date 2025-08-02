@@ -70,11 +70,39 @@ const BlockchainTimeout = 10 * time.Second
 
 const TelegramMessageLimit = 4096
 
-var OpenAIMaxTokens = 600
-var OpenAIServiceTier openai.ServiceTier
-var OpenAIReasoningEffort string
-
 const Version = "0.1.0"
+
+// RuntimeConfig holds runtime configuration for the bot
+type RuntimeConfig struct {
+	CurrentModel          string
+	MaxTokens            int
+	ServiceTier          openai.ServiceTier
+	ReasoningEffort      string
+	EnableWebSearch      bool
+	ToolChoice           string
+	BasePrompt           string
+}
+
+var runtimeConfig = RuntimeConfig{
+	CurrentModel:    "gpt-4.1",
+	MaxTokens:      600,
+	EnableWebSearch: true,
+	ToolChoice:     "auto",
+}
+
+// getRuntimeConfig returns a copy of the current runtime configuration
+func getRuntimeConfig() RuntimeConfig {
+	ModelMu.RLock()
+	defer ModelMu.RUnlock()
+	return runtimeConfig
+}
+
+// updateRuntimeConfig updates runtime configuration safely
+func updateRuntimeConfig(updateFunc func(*RuntimeConfig)) {
+	ModelMu.Lock()
+	defer ModelMu.Unlock()
+	updateFunc(&runtimeConfig)
+}
 
 // formatOpenAIError форматирует ошибку OpenAI для пользователя
 func formatOpenAIError(err error, model string) string {
@@ -167,11 +195,7 @@ type Task struct {
 }
 
 var (
-	CurrentModel     = "gpt-4.1" // Модель по умолчанию с веб-поиском
-	ModelMu          sync.RWMutex
-	BasePrompt       string
-	EnableWebSearch  bool
-	OpenAIToolChoice string
+	ModelMu sync.RWMutex
 	// SupportedModels contains all OpenAI model identifiers that support web search and tools
 	SupportedModels = []string{
 		// Models with web search and tools support
@@ -220,7 +244,7 @@ var (
 // applyTemplate replaces placeholders in the prompt with runtime values.
 func applyTemplate(prompt, model string) string {
 	vars := map[string]string{
-		"base_prompt":  BasePrompt,
+		"base_prompt":  runtimeConfig.BasePrompt,
 		"date":         time.Now().Format("2006-01-02"),
 		"exchange_api": os.Getenv("EXCHANGE_API"),
 		"chart_path":   os.Getenv("CHART_PATH"),
@@ -233,7 +257,7 @@ func applyTemplate(prompt, model string) string {
 }
 
 // RegisterTaskCommands creates bot handlers for all named tasks.
-func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
+func RegisterTaskCommands(b *tb.Bot, client ChatCompleter) {
 	TasksMu.RLock()
 	tasks := append([]Task(nil), LoadedTasks...)
 	TasksMu.RUnlock()
@@ -246,7 +270,9 @@ func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
 		b.Handle(cmd, func(c tb.Context) error {
 			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 			defer cancel()
-			model := CurrentModel
+			ModelMu.RLock()
+			model := runtimeConfig.CurrentModel
+			ModelMu.RUnlock()
 			if tcopy.Model != "" {
 				model = tcopy.Model
 			}
@@ -261,8 +287,93 @@ func RegisterTaskCommands(b *tb.Bot, client *openai.Client) {
 	}
 }
 
-// scheduleDailyMessages sets up the daily lunch idea and brief messages.
-func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot, chatID int64) {
+// createTaskJob creates a job function for a scheduled task
+func createTaskJob(task Task, client ChatCompleter, b *tb.Bot, chatID int64) func() {
+	return func() {
+		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
+		defer cancel()
+
+		model := getRuntimeConfig().CurrentModel
+		if task.Model != "" {
+			model = task.Model
+		}
+
+		logger.L.Debug("run task", "name", task.Name, "model", model)
+
+		prompt := applyTemplate(task.Prompt, model)
+		resp, err := SystemCompletion(ctx, client, prompt, model)
+		if err != nil {
+			DefaultErrorHandler.HandleTaskError(err, task.Name, model)
+			return
+		}
+
+		broadcastTaskResult(b, chatID, resp)
+	}
+}
+
+// broadcastTaskResult sends task result to specified chat or all whitelisted chats
+func broadcastTaskResult(b *tb.Bot, chatID int64, text string) {
+	if chatID != 0 {
+		if err := sendLong(b, tb.ChatID(chatID), text); err != nil {
+			DefaultErrorHandler.HandleTelegramError(err, chatID)
+		} else {
+			logger.L.Debug("telegram sent", "chat_id", chatID)
+		}
+		return
+	}
+
+	ids, err := LoadWhitelist()
+	if err != nil {
+		logger.L.Error("load whitelist", "err", err)
+		return
+	}
+
+	logger.L.Debug("broadcast task result", "recipients", len(ids))
+	for _, id := range ids {
+		if err := sendLong(b, tb.ChatID(id), text); err != nil {
+			DefaultErrorHandler.HandleTelegramError(err, id)
+		} else {
+			logger.L.Debug("telegram sent", "chat_id", id)
+		}
+	}
+}
+
+// scheduleTask schedules a single task in the scheduler
+func scheduleTask(s *gocron.Scheduler, task Task, job func()) error {
+	var j *gocron.Job
+	var err error
+
+	switch {
+	case task.Cron != "":
+		logger.L.Debug("schedule cron", "name", task.Name, "cron", task.Cron)
+		j, err = s.Cron(task.Cron).Do(job)
+	default:
+		timeStr := task.Time
+		if timeStr == "" {
+			timeStr = "00:00"
+		}
+		logger.L.Debug("schedule daily", "name", task.Name, "time", timeStr)
+		j, err = s.Every(1).Day().At(timeStr).Do(job)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Register event listeners for monitoring
+	j.RegisterEventListeners(
+		gocron.BeforeJobRuns(func(jobName string) { logger.L.Debug("job start", "job", task.Name) }),
+		gocron.AfterJobRuns(func(jobName string) { logger.L.Debug("job end", "job", task.Name) }),
+		gocron.WhenJobReturnsError(func(jobName string, err error) { logger.L.Error("job error", "job", task.Name, "err", err) }),
+		gocron.WhenJobReturnsNoError(func(jobName string) { logger.L.Debug("job success", "job", task.Name) }),
+	)
+	j.Tag(task.Name)
+
+	return nil
+}
+
+// ScheduleDailyMessages sets up the daily lunch idea and brief messages.
+func ScheduleDailyMessages(s *gocron.Scheduler, client ChatCompleter, b *tb.Bot, chatID int64) {
 	tasks, err := LoadTasks()
 	if err != nil {
 		logger.L.Error("load tasks", "err", err)
@@ -275,76 +386,11 @@ func ScheduleDailyMessages(s *gocron.Scheduler, client *openai.Client, b *tb.Bot
 	LoadedTasks = tasks
 	TasksMu.Unlock()
 
-	for _, t := range tasks {
-		tcopy := t
-		job := func() {
-			ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-			defer cancel()
-
-			model := CurrentModel
-			if tcopy.Model != "" {
-				model = tcopy.Model
-			}
-
-			logger.L.Debug("run task", "name", tcopy.Name, "model", model)
-
-			logger.L.Debug("task running", "name", tcopy.Name)
-			prompt := applyTemplate(tcopy.Prompt, model)
-			resp, err := SystemCompletion(ctx, client, prompt, model)
-			if err != nil {
-				logger.L.Error("openai error", "scheduled_task", tcopy.Name, "model", model, "err", err)
-				// Для запланированных задач не отправляем сообщение пользователю, только логируем
-				return
-			}
-			text := resp
-			if chatID != 0 {
-				if err := sendLong(b, tb.ChatID(chatID), text); err != nil {
-					logger.L.Error("telegram send", "chat_id", chatID, "err", err)
-				} else {
-					logger.L.Debug("telegram sent", "chat_id", chatID)
-				}
-				return
-			}
-			ids, err := LoadWhitelist()
-			if err != nil {
-				logger.L.Error("load whitelist", "err", err)
-				return
-			}
-			logger.L.Debug("broadcast startup", "recipients", len(ids))
-			for _, id := range ids {
-				if err := sendLong(b, tb.ChatID(id), text); err != nil {
-					logger.L.Error("telegram send", "chat_id", id, "err", err)
-				} else {
-					logger.L.Debug("telegram sent", "chat_id", id)
-				}
-			}
+	for _, task := range tasks {
+		job := createTaskJob(task, client, b, chatID)
+		if err := scheduleTask(s, task, job); err != nil {
+			logger.L.Error("schedule job", "task", task.Name, "err", err)
 		}
-
-		var j *gocron.Job
-		var jerr error
-		switch {
-		case t.Cron != "":
-			logger.L.Debug("schedule cron", "name", t.Name, "cron", t.Cron)
-			j, jerr = s.Cron(t.Cron).Do(job)
-		default:
-			timeStr := t.Time
-			if timeStr == "" {
-				timeStr = "00:00"
-			}
-			logger.L.Debug("schedule daily", "name", t.Name, "time", timeStr)
-			j, jerr = s.Every(1).Day().At(timeStr).Do(job)
-		}
-		if jerr != nil {
-			logger.L.Error("schedule job", "err", jerr)
-			continue
-		}
-		j.RegisterEventListeners(
-			gocron.BeforeJobRuns(func(jobName string) { logger.L.Debug("job start", "job", t.Name) }),
-			gocron.AfterJobRuns(func(jobName string) { logger.L.Debug("job end", "job", t.Name) }),
-			gocron.WhenJobReturnsError(func(jobName string, err error) { logger.L.Error("job error", "job", t.Name, "err", err) }),
-			gocron.WhenJobReturnsNoError(func(jobName string) { logger.L.Debug("job success", "job", t.Name) }),
-		)
-		j.Tag(t.Name)
 	}
 }
 

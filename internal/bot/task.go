@@ -97,13 +97,15 @@ func LoadTasks() ([]Task, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
-		if bp != "" {
-			BasePrompt = bp
-		}
-		if m != "" {
-			ModelMu.Lock()
-			CurrentModel = m
-			ModelMu.Unlock()
+		if bp != "" || m != "" {
+			updateRuntimeConfig(func(cfg *RuntimeConfig) {
+				if bp != "" {
+					cfg.BasePrompt = bp
+				}
+				if m != "" {
+					cfg.CurrentModel = m
+				}
+			})
 		}
 		return tasks, nil
 	}
@@ -124,13 +126,15 @@ func LoadTasks() ([]Task, error) {
 			if err != nil {
 				return nil, err
 			}
-			if bp != "" {
-				BasePrompt = bp
-			}
-			if m != "" {
-				ModelMu.Lock()
-				CurrentModel = m
-				ModelMu.Unlock()
+			if bp != "" || m != "" {
+				updateRuntimeConfig(func(cfg *RuntimeConfig) {
+					if bp != "" {
+						cfg.BasePrompt = bp
+					}
+					if m != "" {
+						cfg.CurrentModel = m
+					}
+				})
 			}
 			return tasks, nil
 		}

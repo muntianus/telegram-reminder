@@ -55,7 +55,7 @@ func realSearchAPI(ctx context.Context, query string) (string, error) {
 	if apiKey == "" {
 		return "", fmt.Errorf("OPENAI_API_KEY not set")
 	}
-	return ResponsesCompletion(ctx, apiKey, query, CurrentModel)
+	return ResponsesCompletion(ctx, apiKey, query, getRuntimeConfig().CurrentModel)
 }
 
 func normalizeQuery(q string) string {
@@ -108,15 +108,10 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	return res, nil
 }
 
-// ChatCompleter abstracts the OpenAI client method used by chatCompletion.
-// This interface allows for easier testing and mocking of OpenAI API calls.
-type ChatCompleter interface {
-	CreateChatCompletion(ctx context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
-}
 
 // StreamChatCompletion sends messages to OpenAI using the streaming API and
 // returns a channel with incremental text parts as they are produced.
-func StreamChatCompletion(ctx context.Context, client *openai.Client, msgs []openai.ChatCompletionMessage, model string) (<-chan string, error) {
+func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []openai.ChatCompletionMessage, model string) (<-chan string, error) {
 	logger.L.Debug("chat completion stream", "model", model, "messages", len(msgs))
 	outCh := make(chan string)
 	if len(msgs) == 0 {
@@ -140,29 +135,29 @@ func StreamChatCompletion(ctx context.Context, client *openai.Client, msgs []ope
 		Messages: msgs,
 		Stream:   true,
 	}
-	if OpenAIServiceTier != "" {
-		req.ServiceTier = OpenAIServiceTier
+	if getRuntimeConfig().ServiceTier != "" {
+		req.ServiceTier = getRuntimeConfig().ServiceTier
 	}
-	if OpenAIReasoningEffort != "" {
-		req.ReasoningEffort = OpenAIReasoningEffort
+	if getRuntimeConfig().ReasoningEffort != "" {
+		req.ReasoningEffort = getRuntimeConfig().ReasoningEffort
 	}
-	if EnableWebSearch && supportsWebSearch(model) {
+	if getRuntimeConfig().EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []openai.Tool{webSearchTool}
 	}
-	if OpenAIToolChoice != "" {
-		req.ToolChoice = OpenAIToolChoice
-		if OpenAIToolChoice == "none" {
+	if getRuntimeConfig().ToolChoice != "" {
+		req.ToolChoice = getRuntimeConfig().ToolChoice
+		if getRuntimeConfig().ToolChoice == "none" {
 			req.Tools = nil
 		}
 	}
 	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
-		req.MaxCompletionTokens = OpenAIMaxTokens
+		req.MaxCompletionTokens = getRuntimeConfig().MaxTokens
 	} else if strings.HasPrefix(model, "gpt-4o") {
 		req.Temperature = 0.9
-		req.MaxTokens = OpenAIMaxTokens
+		req.MaxTokens = getRuntimeConfig().MaxTokens
 	} else {
 		req.Temperature = 0.9
-		req.MaxTokens = OpenAIMaxTokens
+		req.MaxTokens = getRuntimeConfig().MaxTokens
 	}
 
 	stream, err := client.CreateChatCompletionStream(ctx, req)
@@ -230,19 +225,19 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		Model:    model,
 		Messages: msgs,
 	}
-	if OpenAIServiceTier != "" {
-		req.ServiceTier = OpenAIServiceTier
+	if getRuntimeConfig().ServiceTier != "" {
+		req.ServiceTier = getRuntimeConfig().ServiceTier
 	}
-	if OpenAIReasoningEffort != "" {
-		req.ReasoningEffort = OpenAIReasoningEffort
+	if getRuntimeConfig().ReasoningEffort != "" {
+		req.ReasoningEffort = getRuntimeConfig().ReasoningEffort
 	}
-	if EnableWebSearch && supportsWebSearch(model) {
+	if getRuntimeConfig().EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []openai.Tool{webSearchTool}
 	}
 
-	if OpenAIToolChoice != "" {
-		req.ToolChoice = OpenAIToolChoice
-		if OpenAIToolChoice == "none" {
+	if getRuntimeConfig().ToolChoice != "" {
+		req.ToolChoice = getRuntimeConfig().ToolChoice
+		if getRuntimeConfig().ToolChoice == "none" {
 			req.Tools = nil
 		}
 	}
@@ -251,15 +246,15 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	if strings.HasPrefix(model, "o3") || strings.HasPrefix(model, "o1") {
 		// o3/o1 models have fixed parameters: temperature=1, top_p=1, n=1
 		// presence_penalty and frequency_penalty are fixed at 0
-		req.MaxCompletionTokens = OpenAIMaxTokens
+		req.MaxCompletionTokens = getRuntimeConfig().MaxTokens
 	} else if strings.HasPrefix(model, "gpt-4o") {
 		// GPT-4o models support web search (handled automatically by OpenAI)
 		req.Temperature = 0.9
-		req.MaxTokens = OpenAIMaxTokens
+		req.MaxTokens = getRuntimeConfig().MaxTokens
 	} else {
 		// Standard models support custom parameters
 		req.Temperature = 0.9
-		req.MaxTokens = OpenAIMaxTokens
+		req.MaxTokens = getRuntimeConfig().MaxTokens
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, req)
@@ -273,7 +268,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	}
 
 	msg := resp.Choices[0].Message
-	if EnableWebSearch && len(msg.ToolCalls) > 0 {
+	if getRuntimeConfig().EnableWebSearch && len(msg.ToolCalls) > 0 {
 		toolMsgs := make([]openai.ChatCompletionMessage, 0, len(msg.ToolCalls))
 		for _, tc := range msg.ToolCalls {
 			if tc.Type != openai.ToolTypeFunction || tc.Function.Name != "web_search" {

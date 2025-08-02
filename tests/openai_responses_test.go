@@ -11,9 +11,9 @@ import (
 )
 
 func TestResponsesCompletion(t *testing.T) {
-	orig := botpkg.EnableWebSearch
-	botpkg.EnableWebSearch = true
-	defer func() { botpkg.EnableWebSearch = orig }()
+	orig := botpkg.GetEnableWebSearch()
+	botpkg.SetEnableWebSearch(true)
+	defer func() { botpkg.SetEnableWebSearch(orig) }()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req botpkg.ResponseRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -42,9 +42,9 @@ func TestResponsesCompletion(t *testing.T) {
 }
 
 func TestResponsesCompletionDelta(t *testing.T) {
-	orig := botpkg.EnableWebSearch
-	botpkg.EnableWebSearch = false
-	defer func() { botpkg.EnableWebSearch = orig }()
+	orig := botpkg.GetEnableWebSearch()
+	botpkg.SetEnableWebSearch(false)
+	defer func() { botpkg.SetEnableWebSearch(orig) }()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req botpkg.ResponseRequest

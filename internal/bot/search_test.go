@@ -46,9 +46,9 @@ func TestChatCompletionEmptySearchResult(t *testing.T) {
 	origSearch := searchFunc
 	searchFunc = func(ctx context.Context, q string) (string, error) { return "", nil }
 	defer func() { searchFunc = origSearch }()
-	origWeb := EnableWebSearch
-	EnableWebSearch = true
-	defer func() { EnableWebSearch = origWeb }()
+	origWeb := getRuntimeConfig().EnableWebSearch
+	updateRuntimeConfig(func(cfg *RuntimeConfig) { cfg.EnableWebSearch = true })
+	defer func() { updateRuntimeConfig(func(cfg *RuntimeConfig) { cfg.EnableWebSearch = origWeb }) }()
 
 	client := &toolCallClient{t: t}
 	ctx := context.Background()

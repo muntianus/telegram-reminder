@@ -10,7 +10,6 @@ import (
 
 	"telegram-reminder/internal/logger"
 
-	openai "github.com/sashabaranov/go-openai"
 	tb "gopkg.in/telebot.v3"
 )
 
@@ -67,7 +66,7 @@ func handleTasks(c tb.Context) error {
 	return c.Send(FormatTasks(tasks))
 }
 
-func handleTask(client *openai.Client) func(tb.Context) error {
+func handleTask(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command task", "chat", c.Chat().ID, "payload", c.Message().Payload)
 		name := strings.TrimSpace(c.Message().Payload)
@@ -83,15 +82,14 @@ func handleTask(client *openai.Client) func(tb.Context) error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		if t.Model != "" {
 			model = t.Model
 		}
 		prompt := applyTemplate(t.Prompt, model)
 		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
-			logger.L.Error("openai error", "task", t.Name, "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
@@ -102,9 +100,7 @@ func handleModel() func(tb.Context) error {
 		logger.L.Debug("command model", "chat", c.Chat().ID, "payload", c.Message().Payload)
 		payload := strings.TrimSpace(c.Message().Payload)
 		if payload == "" {
-			ModelMu.RLock()
-			cur := CurrentModel
-			ModelMu.RUnlock()
+			cur := getRuntimeConfig().CurrentModel
 			return c.Send(fmt.Sprintf(
 				"Current model: %s\nSupported: %s",
 				cur, strings.Join(SupportedModels, ", "),
@@ -120,40 +116,40 @@ func handleModel() func(tb.Context) error {
 		if !valid {
 			return c.Send(fmt.Sprintf("Unsupported model: %s", payload))
 		}
-		ModelMu.Lock()
-		CurrentModel = payload
-		ModelMu.Unlock()
+		updateRuntimeConfig(func(cfg *RuntimeConfig) {
+			cfg.CurrentModel = payload
+		})
 		return c.Send(fmt.Sprintf("Model set to %s", payload))
 	}
 }
 
-func handleLunch(client *openai.Client) func(tb.Context) error {
+func handleLunch(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command lunch", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(LunchIdeaPrompt, model)
 		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "command", "lunch", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleBrief(client *openai.Client) func(tb.Context) error {
+func handleBrief(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command brief", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(DailyBriefPrompt, model)
 		resp, err := SystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "command", "brief", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
@@ -197,7 +193,7 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 	}
 }
 
-func handleChat(client *openai.Client) func(tb.Context) error {
+func handleChat(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command chat", "chat", c.Chat().ID)
 		q := strings.TrimSpace(c.Message().Payload)
@@ -206,10 +202,10 @@ func handleChat(client *openai.Client) func(tb.Context) error {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		resp, err := UserCompletion(ctx, client, q, CurrentModel)
+		resp, err := UserCompletion(ctx, client, q, getRuntimeConfig().CurrentModel)
 		if err != nil {
-			logger.L.Error("openai error", "command", "chat", "model", CurrentModel, "err", err)
-			return c.Send(formatOpenAIError(err, CurrentModel))
+			logger.L.Error("openai error", "command", "chat", "model", getRuntimeConfig().CurrentModel, "err", err)
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, getRuntimeConfig().CurrentModel))
 		}
 		return sendLong(c.Bot(), c.Sender(), resp)
 	}
@@ -235,113 +231,113 @@ func handleSearch() func(tb.Context) error {
 }
 
 // Обработчики для новых команд дайджестов
-func handleCryptoDigest(client *openai.Client) func(tb.Context) error {
+func handleCryptoDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command crypto", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(CryptoDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "crypto", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleTechDigest(client *openai.Client) func(tb.Context) error {
+func handleTechDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command tech", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(TechDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "tech", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleRealEstateDigest(client *openai.Client) func(tb.Context) error {
+func handleRealEstateDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command realestate", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(RealEstateDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "realestate", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleBusinessDigest(client *openai.Client) func(tb.Context) error {
+func handleBusinessDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command business", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(BusinessDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "business", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleInvestmentDigest(client *openai.Client) func(tb.Context) error {
+func handleInvestmentDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command investment", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(InvestmentDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "investment", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleStartupDigest(client *openai.Client) func(tb.Context) error {
+func handleStartupDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command startup", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(StartupDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "startup", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
 }
 
-func handleGlobalDigest(client *openai.Client) func(tb.Context) error {
+func handleGlobalDigest(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command global", "chat", c.Chat().ID)
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		model := CurrentModel
+		model := getRuntimeConfig().CurrentModel
 		prompt := applyTemplate(GlobalDigestPrompt, model)
 		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
 		if err != nil {
 			logger.L.Error("openai error", "digest", "global", "model", model, "err", err)
-			return c.Send(formatOpenAIError(err, model))
+			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
 		}
 		return replyLong(c, resp)
 	}
