@@ -69,6 +69,9 @@ func Load() (Config, error) {
 		if err != nil {
 			return cfg, fmt.Errorf("invalid CHAT_ID: %w", err)
 		}
+		if err := validateTelegramChatID(chatID); err != nil {
+			return cfg, fmt.Errorf("invalid CHAT_ID: %w", err)
+		}
 	}
 
 	var logChatID int64
@@ -76,6 +79,9 @@ func Load() (Config, error) {
 		var err error
 		logChatID, err = strconv.ParseInt(logChatIDStr, 10, 64)
 		if err != nil {
+			return cfg, fmt.Errorf("invalid LOG_CHAT_ID: %w", err)
+		}
+		if err := validateTelegramChatID(logChatID); err != nil {
 			return cfg, fmt.Errorf("invalid LOG_CHAT_ID: %w", err)
 		}
 	}
@@ -115,4 +121,34 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// validateTelegramChatID validates that the chat ID is within Telegram's valid range
+func validateTelegramChatID(chatID int64) error {
+	// Telegram chat IDs are typically:
+	// - User IDs: positive integers up to 2^31-1
+	// - Group/supergroup IDs: negative integers starting from -1
+	// - Channel IDs: negative integers with specific ranges
+	
+	if chatID == 0 {
+		return fmt.Errorf("chat ID cannot be zero")
+	}
+	
+	// Check for reasonable bounds based on Telegram's documentation
+	const maxUserID = 2147483647    // 2^31-1
+	const minGroupID = -2147483648  // -2^31
+	
+	if chatID > 0 {
+		// User ID validation
+		if chatID > maxUserID {
+			return fmt.Errorf("user ID too large (max: %d)", maxUserID)
+		}
+	} else {
+		// Group/channel ID validation  
+		if chatID < minGroupID {
+			return fmt.Errorf("group/channel ID too small (min: %d)", minGroupID)
+		}
+	}
+	
+	return nil
 }

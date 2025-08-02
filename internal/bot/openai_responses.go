@@ -69,7 +69,11 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api error", "err", err)
 		return "", err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { 
+		if err := resp.Body.Close(); err != nil {
+			logger.L.Debug("failed to close response body", "err", err)
+		}
+	}()
 	if resp.StatusCode >= 400 {
 		data, _ := io.ReadAll(resp.Body)
 		logger.L.Debug("responses api status", "status", resp.Status, "body", string(data))
@@ -153,7 +157,11 @@ func GetResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { 
+		if err := resp.Body.Close(); err != nil {
+			logger.L.Debug("failed to close response body", "err", err)
+		}
+	}()
 	if resp.StatusCode >= http.StatusBadRequest {
 		data, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
@@ -189,7 +197,11 @@ func DeleteResponse(ctx context.Context, apiKey, id string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { 
+		if err := resp.Body.Close(); err != nil {
+			logger.L.Debug("failed to close response body", "err", err)
+		}
+	}()
 	if resp.StatusCode >= http.StatusBadRequest {
 		data, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
@@ -210,7 +222,11 @@ func CancelResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { 
+		if err := resp.Body.Close(); err != nil {
+			logger.L.Debug("failed to close response body", "err", err)
+		}
+	}()
 	if resp.StatusCode >= http.StatusBadRequest {
 		data, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
@@ -254,7 +270,11 @@ func ListInputItems(ctx context.Context, apiKey, id string) ([]InputItem, error)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { 
+		if err := resp.Body.Close(); err != nil {
+			logger.L.Debug("failed to close response body", "err", err)
+		}
+	}()
 	if resp.StatusCode >= http.StatusBadRequest {
 		data, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("openai error: %s", strings.TrimSpace(string(data)))
