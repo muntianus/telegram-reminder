@@ -46,6 +46,19 @@ type responseResult struct {
 	Output []responseOutput `json:"output"`
 }
 
+// extractOutputText concatenates all text parts from the Responses API output.
+func extractOutputText(res responseResult) string {
+	var parts []string
+	for _, out := range res.Output {
+		for _, c := range out.Content {
+			if t := strings.TrimSpace(c.Text); t != "" {
+				parts = append(parts, t)
+			}
+		}
+	}
+	return strings.TrimSpace(strings.Join(parts, "\n"))
+}
+
 // callResponsesAPI performs a request to the given responses endpoint.
 func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseRequest, endpoint string) (string, error) {
 	logger.L.Debug("responses api", "model", reqBody.Model)
@@ -92,10 +105,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api body", "body", string(data))
 		return "", err
 	}
-	out := ""
-	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
-		out = strings.TrimSpace(res.Output[0].Content[0].Text)
-	}
+	out := extractOutputText(res)
 	if out == "" {
 		logger.L.Debug("responses api empty output", "body", string(data))
 		return "", errors.New("openai: empty response")
@@ -174,10 +184,7 @@ func GetResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err := json.Unmarshal(data, &res); err != nil {
 		return "", err
 	}
-	out := ""
-	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
-		out = strings.TrimSpace(res.Output[0].Content[0].Text)
-	}
+	out := extractOutputText(res)
 	if out == "" {
 		return "", errors.New("openai: empty response")
 	}
@@ -239,10 +246,7 @@ func CancelResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err := json.Unmarshal(data, &res); err != nil {
 		return "", err
 	}
-	out := ""
-	if len(res.Output) > 0 && len(res.Output[0].Content) > 0 {
-		out = strings.TrimSpace(res.Output[0].Content[0].Text)
-	}
+	out := extractOutputText(res)
 	if out == "" {
 		return "", errors.New("openai: empty response")
 	}
