@@ -33,7 +33,7 @@ func TestModelCommand(t *testing.T) {
 		payload := strings.TrimSpace(c.Message().Payload)
 		if payload == "" {
 			botpkg.ModelMu.RLock()
-			cur := botpkg.CurrentModel
+			cur := botpkg.GetCurrentModel()
 			botpkg.ModelMu.RUnlock()
 			return c.Send(fmt.Sprintf(
 				"Current model: %s\nSupported: %s",
@@ -50,15 +50,11 @@ func TestModelCommand(t *testing.T) {
 		if !valid {
 			return c.Send(fmt.Sprintf("Unsupported model: %s", payload))
 		}
-		botpkg.ModelMu.Lock()
-		botpkg.CurrentModel = payload
-		botpkg.ModelMu.Unlock()
+		botpkg.SetCurrentModel(payload)
 		return c.Send(fmt.Sprintf("Model set to %s", payload))
 	})
 
-	botpkg.ModelMu.Lock()
-	botpkg.CurrentModel = "gpt-4.1"
-	botpkg.ModelMu.Unlock()
+	botpkg.SetCurrentModel("gpt-4.1")
 
 	ctx := &modelFakeCtx{msg: &tb.Message{Payload: ""}}
 	if err := bot.Trigger("/model", ctx); err != nil {
@@ -84,9 +80,7 @@ func TestModelCommand(t *testing.T) {
 		t.Errorf("unexpected invalid response: %v", invalid.sent)
 	}
 
-	botpkg.ModelMu.RLock()
-	got := botpkg.CurrentModel
-	botpkg.ModelMu.RUnlock()
+	got := botpkg.GetCurrentModel()
 	if got != "gpt-4o" {
 		t.Errorf("currentModel not updated: %s", got)
 	}

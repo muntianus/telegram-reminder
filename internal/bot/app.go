@@ -23,16 +23,18 @@ type Bot struct {
 
 // New creates a new Bot instance with initialized dependencies.
 func New(cfg config.Config) (*Bot, error) {
-	if cfg.OpenAIModel != "" {
-		CurrentModel = cfg.OpenAIModel
-	}
-	if cfg.OpenAIMaxTokens > 0 {
-		OpenAIMaxTokens = cfg.OpenAIMaxTokens
-	}
-	EnableWebSearch = cfg.EnableWebSearch
-	OpenAIToolChoice = cfg.OpenAIToolChoice
-	OpenAIServiceTier = openai.ServiceTier(cfg.OpenAIServiceTier)
-	OpenAIReasoningEffort = cfg.OpenAIReasoningEffort
+	updateRuntimeConfig(func(rc *RuntimeConfig) {
+		if cfg.OpenAIModel != "" {
+			rc.CurrentModel = cfg.OpenAIModel
+		}
+		if cfg.OpenAIMaxTokens > 0 {
+			rc.MaxTokens = cfg.OpenAIMaxTokens
+		}
+		rc.EnableWebSearch = cfg.EnableWebSearch
+		rc.ToolChoice = cfg.OpenAIToolChoice
+		rc.ServiceTier = openai.ServiceTier(cfg.OpenAIServiceTier)
+		rc.ReasoningEffort = cfg.OpenAIReasoningEffort
+	})
 
 	tele, err := tb.NewBot(tb.Settings{Token: cfg.TelegramToken})
 	if err != nil {

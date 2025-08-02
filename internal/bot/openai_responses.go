@@ -106,7 +106,7 @@ func ResponsesCompletion(ctx context.Context, apiKey, input, model string) (stri
 		Model: model,
 		Input: input,
 	}
-	if EnableWebSearch && supportsWebSearch(model) {
+	if getRuntimeConfig().EnableWebSearch && supportsWebSearch(model) {
 		req.Tools = []ResponseTool{{Type: "web_search"}}
 	}
 	return callResponsesAPI(ctx, apiKey, req, "")

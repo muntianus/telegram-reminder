@@ -19,7 +19,9 @@ func (r *recordClient) CreateChatCompletion(ctx context.Context, req openai.Chat
 }
 
 func TestChatCompletionToolChoice(t *testing.T) {
-	botpkg.OpenAIToolChoice = "none"
+	orig := botpkg.GetToolChoice()
+	botpkg.SetToolChoice("none")
+	defer func() { botpkg.SetToolChoice(orig) }()
 	rc := &recordClient{resp: openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{{Message: openai.ChatCompletionMessage{Content: "hi"}}}}}
 	_, err := botpkg.ChatCompletion(context.Background(), rc, []openai.ChatCompletionMessage{{Role: openai.ChatMessageRoleUser, Content: "q"}}, "gpt-4o")
 	if err != nil {
