@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -13,7 +14,21 @@ var (
 )
 
 func init() {
-	L = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: parseLevel(os.Getenv("LOG_LEVEL"))}))
+	handlerOpts := &slog.HandlerOptions{
+		Level: parseLevel(os.Getenv("LOG_LEVEL")),
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			switch a.Key {
+			case slog.TimeKey:
+				t := a.Value.Time()
+				return slog.String("time", t.Format(time.DateTime))
+			case slog.LevelKey:
+				return slog.String("level", strings.ToUpper(a.Value.String()))
+			default:
+				return a
+			}
+		},
+	}
+	L = slog.New(slog.NewTextHandler(os.Stderr, handlerOpts))
 }
 
 // SetLogger replaces the global logger. Useful in tests.
