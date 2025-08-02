@@ -97,13 +97,15 @@ func (b *Bot) Start() error {
 	b.TeleBot.Handle("/model", handleModel())
 	b.TeleBot.Handle("/lunch", handleLunch(b.Client))
 	b.TeleBot.Handle("/brief", handleBrief(b.Client))
-	b.TeleBot.Handle("/crypto", handleCryptoDigest(b.Client))
-	b.TeleBot.Handle("/tech", handleTechDigest(b.Client))
-	b.TeleBot.Handle("/realestate", handleRealEstateDigest(b.Client))
-	b.TeleBot.Handle("/business", handleBusinessDigest(b.Client))
-	b.TeleBot.Handle("/investment", handleInvestmentDigest(b.Client))
-	b.TeleBot.Handle("/startup", handleStartupDigest(b.Client))
-	b.TeleBot.Handle("/global", handleGlobalDigest(b.Client))
+	// Initialize new digest architecture
+	digestIntegration, err := NewDigestIntegration(b.Client, DefaultErrorHandler)
+	if err != nil {
+		logger.L.Error("failed to initialize digest integration", "err", err)
+	} else {
+		// Replace old digest handlers with new architecture
+		digestIntegration.ReplaceDigestHandlers(b.TeleBot, b.Client)
+		logger.L.Info("digest handlers replaced with new architecture")
+	}
 	b.TeleBot.Handle("/blockchain", handleBlockchain(b.Config.BlockchainAPI))
 	b.TeleBot.Handle("/chat", handleChat(b.Client))
 	b.TeleBot.Handle("/search", handleSearch())
