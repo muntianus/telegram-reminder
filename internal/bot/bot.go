@@ -74,20 +74,20 @@ const Version = "0.1.0"
 
 // RuntimeConfig holds runtime configuration for the bot
 type RuntimeConfig struct {
-	CurrentModel          string
-	MaxTokens            int
-	ServiceTier          openai.ServiceTier
-	ReasoningEffort      string
-	EnableWebSearch      bool
-	ToolChoice           string
-	BasePrompt           string
+	CurrentModel    string
+	MaxTokens       int
+	ServiceTier     openai.ServiceTier
+	ReasoningEffort string
+	EnableWebSearch bool
+	ToolChoice      string
+	BasePrompt      string
 }
 
 var runtimeConfig = RuntimeConfig{
 	CurrentModel:    "gpt-4.1",
-	MaxTokens:      600,
+	MaxTokens:       600,
 	EnableWebSearch: true,
-	ToolChoice:     "auto",
+	ToolChoice:      "auto",
 }
 
 // getRuntimeConfig returns a copy of the current runtime configuration

@@ -108,7 +108,6 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	return res, nil
 }
 
-
 // StreamChatCompletion sends messages to OpenAI using the streaming API and
 // returns a channel with incremental text parts as they are produced.
 func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []openai.ChatCompletionMessage, model string) (<-chan string, error) {
