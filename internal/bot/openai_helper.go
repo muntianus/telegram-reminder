@@ -308,6 +308,9 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	}
 	out := strings.TrimSpace(msg.Content)
 	logger.L.Debug("openai result", "length", len(out), "preview", logger.Truncate(out, 200))
+	if len(out) == 0 {
+		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)
+	}
 	return out, nil
 }
 
