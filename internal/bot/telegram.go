@@ -14,7 +14,7 @@ func sendLong(b *tb.Bot, to tb.Recipient, text string) error {
 		_, err := b.Send(to, "❌ Получен пустой ответ")
 		return err
 	}
-	
+
 	runes := []rune(text)
 	for len(runes) > 0 {
 		end := TelegramMessageLimit
@@ -36,7 +36,7 @@ func replyLong(c tb.Context, text string) error {
 		logger.L.Warn("empty text in replyLong")
 		return c.Send("❌ Получен пустой ответ")
 	}
-	
+
 	runes := []rune(text)
 	for len(runes) > 0 {
 		end := TelegramMessageLimit
