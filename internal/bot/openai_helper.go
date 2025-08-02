@@ -39,15 +39,17 @@ var webSearchTool = openai.Tool{
 var searchFunc = defaultWebSearch
 
 type searchEntry struct {
-	result string
-	ts     time.Time
+	result   string
+	ts       time.Time
+	accessed time.Time
 }
 
 var (
-	searchCache    = map[string]searchEntry{}
-	searchCacheTTL = 10 * time.Minute
-	searchMu       sync.RWMutex
-	searchAPIFunc  = realSearchAPI
+	searchCache     = map[string]searchEntry{}
+	searchCacheTTL  = 10 * time.Minute
+	searchCacheSize = 100 // Maximum cache entries
+	searchMu        sync.RWMutex
+	searchAPIFunc   = realSearchAPI
 )
 
 func realSearchAPI(ctx context.Context, query string) (string, error) {
@@ -67,19 +69,69 @@ func normalizeQuery(q string) string {
 }
 
 func getCachedSearch(query string) (string, bool) {
-	searchMu.RLock()
-	defer searchMu.RUnlock()
+	searchMu.Lock()
+	defer searchMu.Unlock()
 	e, ok := searchCache[query]
 	if !ok || time.Since(e.ts) > searchCacheTTL {
 		return "", false
 	}
+	// Update access time for LRU
+	e.accessed = time.Now()
+	searchCache[query] = e
 	return e.result, true
 }
 
 func setCachedSearch(query, result string) {
 	searchMu.Lock()
 	defer searchMu.Unlock()
-	searchCache[query] = searchEntry{result: result, ts: time.Now()}
+	
+	now := time.Now()
+	entry := searchEntry{
+		result:   result,
+		ts:       now,
+		accessed: now,
+	}
+	
+	// Clean expired entries first
+	cleanExpiredSearchCache()
+	
+	// If cache is at capacity, remove LRU entry
+	if len(searchCache) >= searchCacheSize {
+		removeLRUSearchEntry()
+	}
+	
+	searchCache[query] = entry
+}
+
+// cleanExpiredSearchCache removes expired entries from cache
+func cleanExpiredSearchCache() {
+	now := time.Now()
+	for query, entry := range searchCache {
+		if now.Sub(entry.ts) > searchCacheTTL {
+			delete(searchCache, query)
+		}
+	}
+}
+
+// removeLRUSearchEntry removes the least recently used entry
+func removeLRUSearchEntry() {
+	if len(searchCache) == 0 {
+		return
+	}
+	
+	var oldestQuery string
+	var oldestTime time.Time = time.Now()
+	
+	for query, entry := range searchCache {
+		if entry.accessed.Before(oldestTime) {
+			oldestTime = entry.accessed
+			oldestQuery = query
+		}
+	}
+	
+	if oldestQuery != "" {
+		delete(searchCache, oldestQuery)
+	}
 }
 
 func supportsWebSearch(model string) bool {
@@ -167,24 +219,45 @@ func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []op
 	}
 
 	go func() {
-		defer func() { _ = stream.Close(); close(outCh) }()
+		defer func() { 
+			if err := stream.Close(); err != nil {
+				logger.L.Debug("stream close error", "err", err)
+			}
+			close(outCh) 
+		}()
 		for {
-			resp, err := stream.Recv()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
+			select {
+			case <-ctx.Done():
+				logger.L.Debug("stream context cancelled", "err", ctx.Err())
+				return
+			default:
+				resp, err := stream.Recv()
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						return
+					}
+					logger.L.Debug("stream recv error", "err", err)
 					return
 				}
-				logger.L.Debug("stream recv error", "err", err)
-				return
+				if len(resp.Choices) == 0 {
+					continue
+				}
+				delta := resp.Choices[0].Delta.Content
+				if strings.TrimSpace(delta) == "" {
+					continue
+				}
+				
+				// Try to send with timeout to prevent blocking
+				select {
+				case outCh <- delta:
+				case <-ctx.Done():
+					logger.L.Debug("stream send cancelled", "err", ctx.Err())
+					return
+				case <-time.After(5 * time.Second):
+					logger.L.Debug("stream send timeout")
+					return
+				}
 			}
-			if len(resp.Choices) == 0 {
-				continue
-			}
-			delta := resp.Choices[0].Delta.Content
-			if strings.TrimSpace(delta) == "" {
-				continue
-			}
-			outCh <- delta
 		}
 	}()
 

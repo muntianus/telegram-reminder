@@ -90,11 +90,20 @@ var runtimeConfig = RuntimeConfig{
 	ToolChoice:      "auto",
 }
 
-// getRuntimeConfig returns a copy of the current runtime configuration
+// getRuntimeConfig returns a deep copy of the current runtime configuration
 func getRuntimeConfig() RuntimeConfig {
 	ModelMu.RLock()
 	defer ModelMu.RUnlock()
-	return runtimeConfig
+	// Create a deep copy to prevent race conditions
+	return RuntimeConfig{
+		CurrentModel:    runtimeConfig.CurrentModel,
+		MaxTokens:       runtimeConfig.MaxTokens,
+		ServiceTier:     runtimeConfig.ServiceTier,
+		ReasoningEffort: runtimeConfig.ReasoningEffort,
+		EnableWebSearch: runtimeConfig.EnableWebSearch,
+		ToolChoice:      runtimeConfig.ToolChoice,
+		BasePrompt:      runtimeConfig.BasePrompt,
+	}
 }
 
 // updateRuntimeConfig updates runtime configuration safely

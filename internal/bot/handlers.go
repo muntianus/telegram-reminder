@@ -43,7 +43,11 @@ func handleWhitelist(c tb.Context) error {
 
 func handleRemove(c tb.Context) error {
 	logger.L.Debug("command remove", "chat", c.Chat().ID)
-	payload := strings.TrimSpace(c.Message().Payload)
+	payload := sanitizeInput(c.Message().Payload)
+	if err := validatePayload(payload); err != nil {
+		logger.L.Debug("invalid payload", "err", err)
+		return c.Send("Usage: /remove <id>")
+	}
 	if payload == "" {
 		return c.Send("Usage: /remove <id>")
 	}
@@ -69,7 +73,11 @@ func handleTasks(c tb.Context) error {
 func handleTask(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command task", "chat", c.Chat().ID, "payload", c.Message().Payload)
-		name := strings.TrimSpace(c.Message().Payload)
+		name := sanitizeInput(c.Message().Payload)
+		if err := validatePayload(name); err != nil {
+			logger.L.Debug("invalid task name", "err", err)
+			return c.Send("Task name invalid")
+		}
 		TasksMu.RLock()
 		tasks := append([]Task(nil), LoadedTasks...)
 		TasksMu.RUnlock()
@@ -98,7 +106,11 @@ func handleTask(client ChatCompleter) func(tb.Context) error {
 func handleModel() func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command model", "chat", c.Chat().ID, "payload", c.Message().Payload)
-		payload := strings.TrimSpace(c.Message().Payload)
+		payload := sanitizeInput(c.Message().Payload)
+		if err := validatePayload(payload); err != nil {
+			logger.L.Debug("invalid model payload", "err", err)
+			return c.Send("Invalid model name")
+		}
 		if payload == "" {
 			cur := getRuntimeConfig().CurrentModel
 			return c.Send(fmt.Sprintf(
@@ -196,7 +208,11 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 func handleChat(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command chat", "chat", c.Chat().ID)
-		q := strings.TrimSpace(c.Message().Payload)
+		q := sanitizeInput(c.Message().Payload)
+		if err := validateChatMessage(q); err != nil {
+			logger.L.Debug("invalid chat message", "err", err)
+			return c.Send("Message too long or invalid")
+		}
 		if q == "" {
 			return c.Send("Usage: /chat <message>")
 		}
@@ -214,9 +230,10 @@ func handleChat(client ChatCompleter) func(tb.Context) error {
 func handleSearch() func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command search", "chat", c.Chat().ID)
-		q := strings.TrimSpace(c.Message().Payload)
-		if q == "" {
-			return c.Send("Usage: /search <query>")
+		q := sanitizeInput(c.Message().Payload)
+		if err := validateQuery(q); err != nil {
+			logger.L.Debug("invalid search query", "err", err)
+			return c.Send("Search query too long, too short, or invalid")
 		}
 		result, err := OpenAISearch(q)
 		if err != nil {
