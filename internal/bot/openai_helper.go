@@ -154,7 +154,12 @@ func defaultWebSearch(ctx context.Context, query string) (string, error) {
 	}
 	res, err := searchAPIFunc(ctx, q)
 	if err != nil {
-		return "", err
+		logger.L.Error("search API call failed", "query", q, "err", err)
+		return "", fmt.Errorf("поиск недоступен: %w", err)
+	}
+	if strings.TrimSpace(res) == "" {
+		logger.L.Warn("search API returned empty result", "query", q)
+		return "", fmt.Errorf("по запросу '%s' ничего не найдено", q)
 	}
 	setCachedSearch(q, res)
 	return res, nil
@@ -336,7 +341,8 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 	}
 	logger.L.Debug("openai response", "choices", len(resp.Choices))
 	if len(resp.Choices) == 0 {
-		return "", nil
+		logger.L.Warn("openai returned empty response", "model", model, "request_id", resp.ID)
+		return "Извините, получен пустой ответ от OpenAI. Попробуйте еще раз.", nil
 	}
 
 	msg := resp.Choices[0].Message
@@ -354,10 +360,11 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 			}
 			res, err := searchFunc(ctx, p.Query)
 			if err != nil {
-				res = err.Error()
-			}
-			if strings.TrimSpace(res) == "" {
-				res = "no results"
+				logger.L.Error("web search failed", "query", p.Query, "err", err)
+				res = "Веб-поиск временно недоступен. Попробуйте позже или переформулируйте запрос."
+			} else if strings.TrimSpace(res) == "" {
+				logger.L.Warn("web search returned empty results", "query", p.Query)
+				res = "По вашему запросу ничего не найдено. Попробуйте изменить поисковый запрос."
 			}
 			toolMsgs = append(toolMsgs, openai.ChatCompletionMessage{
 				Role:       openai.ChatMessageRoleTool,
@@ -369,17 +376,24 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 			msgs = append(msgs, msg)
 			msgs = append(msgs, toolMsgs...)
 			req.Messages = msgs
+			logger.L.Debug("sending follow-up request with tool results", "tools_count", len(toolMsgs))
 			resp, err = client.CreateChatCompletion(ctx, req)
 			if err != nil {
+				logger.L.Error("openai follow-up request failed", "err", err)
 				return "", err
 			}
 			if len(resp.Choices) == 0 {
-				return "", nil
+				logger.L.Warn("openai returned empty response after tool use", "model", model, "request_id", resp.ID)
+				return "Извините, получен пустой ответ от OpenAI после веб-поиска. Попробуйте еще раз.", nil
 			}
 			msg = resp.Choices[0].Message
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
+	if out == "" {
+		logger.L.Warn("openai returned empty content", "model", model, "message_role", msg.Role)
+		return "Извините, OpenAI вернул пустой ответ. Попробуйте переформулировать вопрос или повторить запрос.", nil
+	}
 	logger.L.Debug("openai result", "length", len(out), "preview", logger.Truncate(out, 200))
 	return out, nil
 }
