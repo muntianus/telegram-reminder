@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"telegram-reminder/internal/logger"
-	
+
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -42,7 +42,7 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 
 	// Apply runtime configuration
 	config := getRuntimeConfig()
-	
+
 	if config.ServiceTier != "" {
 		req.ServiceTier = config.ServiceTier
 	}
@@ -81,7 +81,7 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 	}
 
 	msg := resp.Choices[0].Message
-	
+
 	// Handle tool calls for web search
 	if config.EnableWebSearch && len(msg.ToolCalls) > 0 {
 		// This would integrate with the existing web search functionality
@@ -91,22 +91,22 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 
 	out := strings.TrimSpace(msg.Content)
 	logger.L.Debug("openai result", "length", len(out), "preview", truncateString(out, 200))
-	
+
 	if len(out) == 0 {
 		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)
 	}
-	
+
 	return out, nil
 }
 
 // RuntimeConfig represents the runtime configuration
 type RuntimeConfig struct {
-	CurrentModel     string
-	MaxTokens        int
-	ServiceTier      openai.ServiceTier
-	ReasoningEffort  string
-	EnableWebSearch  bool
-	ToolChoice       string
+	CurrentModel    string
+	MaxTokens       int
+	ServiceTier     openai.ServiceTier
+	ReasoningEffort string
+	EnableWebSearch bool
+	ToolChoice      string
 }
 
 // getRuntimeConfig returns the current runtime configuration
@@ -131,7 +131,7 @@ func supportsWebSearch(model string) bool {
 		"gpt-4", "gpt-4.1", "gpt-4.1-2025-04-14", "gpt-4.1-mini",
 		"gpt-4.1-mini-2025-04-14", "gpt-4.1-nano", "gpt-4.1-nano-2025-04-14",
 	}
-	
+
 	for _, supported := range supportedModels {
 		if model == supported {
 			return true

@@ -69,13 +69,13 @@ func (ea *ErrorHandlerAdapter) HandleOpenAIError(err error, model string) string
 func (di *DigestIntegration) ReplaceDigestHandlers(bot *tb.Bot, client ChatCompleter) {
 	// Get all digest configs
 	configs := domain.GetDigestConfigs()
-	
+
 	// Create handlers using new architecture
 	for digestType, config := range configs {
 		// Create a closure to capture the digest type
 		capturedType := digestType
 		handler := di.digestHandler.HandleDigest(capturedType)
-		
+
 		// Register with bot
 		bot.Handle("/"+config.CommandName, handler)
 	}
@@ -85,10 +85,10 @@ func (di *DigestIntegration) ReplaceDigestHandlers(bot *tb.Bot, client ChatCompl
 func (di *DigestIntegration) GetDigestTypes() []string {
 	configs := domain.GetDigestConfigs()
 	types := make([]string, 0, len(configs))
-	
+
 	for _, config := range configs {
 		types = append(types, config.CommandName)
 	}
-	
+
 	return types
 }

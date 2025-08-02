@@ -67,7 +67,7 @@ func (h *DigestHandler) HandleDigest(digestType domain.DigestType) func(tb.Conte
 // RegisterDigestHandlers registers all digest handlers with the bot
 func (h *DigestHandler) RegisterDigestHandlers(bot TelegramBot) {
 	configs := domain.GetDigestConfigs()
-	
+
 	for digestType, config := range configs {
 		handler := h.HandleDigest(digestType)
 		bot.Handle("/"+config.CommandName, handler)
@@ -86,23 +86,23 @@ func (h *DigestHandler) replyLong(c tb.Context, text string) error {
 		logger.L.Warn("empty text in replyLong")
 		return c.Send("❌ Получен пустой ответ")
 	}
-	
+
 	const telegramMessageLimit = 4096
 	runes := []rune(text)
-	
+
 	for len(runes) > 0 {
 		end := telegramMessageLimit
 		if len(runes) < end {
 			end = len(runes)
 		}
-		
+
 		if err := c.Send(string(runes[:end]), tb.ModeHTML); err != nil {
 			return err
 		}
-		
+
 		runes = runes[end:]
 	}
-	
+
 	return nil
 }
 

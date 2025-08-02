@@ -71,7 +71,7 @@ func (s *DigestService) GenerateDigest(ctx context.Context, req DigestRequest) (
 	}
 
 	logger.L.Debug("digest generated successfully", "type", req.Type, "length", len(content))
-	
+
 	return &DigestResponse{
 		Content: content,
 		Type:    req.Type,
@@ -95,13 +95,13 @@ func (s *DigestService) applyTemplate(prompt, model, templateName string) string
 		"date":  time.Now().Format("2006-01-02"),
 		"model": model,
 	}
-	
+
 	result := prompt
 	for key, value := range vars {
 		// Simple string replacement - in production, use a proper template engine
 		result = replaceAll(result, "{"+key+"}", value)
 	}
-	
+
 	return result
 }
 
@@ -122,7 +122,7 @@ func replace(s, old, new string) string {
 	if len(old) == 0 {
 		return s
 	}
-	
+
 	for i := 0; i <= len(s)-len(old); i++ {
 		if s[i:i+len(old)] == old {
 			return s[:i] + new + s[i+len(old):]

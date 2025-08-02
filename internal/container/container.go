@@ -101,7 +101,7 @@ func (sb *ServiceBuilder) BuildDigestService() (*services.DigestService, error) 
 
 	digestService := services.NewDigestService(aiClientTyped, timeoutDuration)
 	sb.container.RegisterService(DigestServiceName, digestService)
-	
+
 	return digestService, nil
 }
 
@@ -134,7 +134,7 @@ func (sb *ServiceBuilder) BuildDigestHandler() (*handlers.DigestHandler, error) 
 
 	digestHandler := handlers.NewDigestHandler(digestServiceTyped, errorHandlerTyped)
 	sb.container.RegisterService(DigestHandlerName, digestHandler)
-	
+
 	return digestHandler, nil
 }
 
