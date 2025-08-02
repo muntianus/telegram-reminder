@@ -230,123 +230,28 @@ func handleSearch() func(tb.Context) error {
 	}
 }
 
-// Обработчики для новых команд дайджестов
-func handleCryptoDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command crypto", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(CryptoDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "crypto", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleTechDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command tech", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(TechDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "tech", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleRealEstateDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command realestate", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(RealEstateDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "realestate", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleBusinessDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command business", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(BusinessDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "business", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleInvestmentDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command investment", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(InvestmentDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "investment", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleStartupDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command startup", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(StartupDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "startup", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
-
-func handleGlobalDigest(client ChatCompleter) func(tb.Context) error {
-	return func(c tb.Context) error {
-		logger.L.Debug("command global", "chat", c.Chat().ID)
-		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
-		defer cancel()
-		model := getRuntimeConfig().CurrentModel
-		prompt := applyTemplate(GlobalDigestPrompt, model)
-		resp, err := EnhancedSystemCompletion(ctx, client, prompt, model)
-		if err != nil {
-			logger.L.Error("openai error", "digest", "global", "model", model, "err", err)
-			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, model))
-		}
-		return replyLong(c, resp)
-	}
-}
+// Old digest handlers removed - replaced with new architecture in digest_integration.go
 
 // handleWebDoc sends the web search documentation snippet to the user.
 func handleWebDoc() func(tb.Context) error {
 	return func(c tb.Context) error {
 		logger.L.Debug("command webdoc", "chat", c.Chat().ID)
-		return replyLong(c, WebSearchDoc)
+		webSearchDoc := `🔍 **Веб-поиск через OpenAI**
+
+Команда /search позволяет выполнять поиск в интернете через OpenAI API.
+
+**Использование:**
+/search <запрос>
+
+**Пример:**
+/search последние новости ИИ
+
+**Особенности:**
+- Использует возможности веб-поиска OpenAI
+- Возвращает актуальную информацию
+- Форматирует результаты для удобного чтения
+
+**Примечание:** Доступность зависит от модели OpenAI.`
+		return replyLong(c, webSearchDoc)
 	}
 }
