@@ -69,7 +69,7 @@ func callResponsesAPI(ctx context.Context, apiKey string, reqBody ResponseReques
 		logger.L.Debug("responses api error", "err", err)
 		return "", err
 	}
-	defer func() { 
+	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			logger.L.Debug("failed to close response body", "err", err)
 		}
@@ -157,7 +157,7 @@ func GetResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { 
+	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			logger.L.Debug("failed to close response body", "err", err)
 		}
@@ -197,7 +197,7 @@ func DeleteResponse(ctx context.Context, apiKey, id string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { 
+	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			logger.L.Debug("failed to close response body", "err", err)
 		}
@@ -222,7 +222,7 @@ func CancelResponse(ctx context.Context, apiKey, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { 
+	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			logger.L.Debug("failed to close response body", "err", err)
 		}
@@ -270,7 +270,7 @@ func ListInputItems(ctx context.Context, apiKey, id string) ([]InputItem, error)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { 
+	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			logger.L.Debug("failed to close response body", "err", err)
 		}

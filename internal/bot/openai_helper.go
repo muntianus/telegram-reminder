@@ -84,22 +84,22 @@ func getCachedSearch(query string) (string, bool) {
 func setCachedSearch(query, result string) {
 	searchMu.Lock()
 	defer searchMu.Unlock()
-	
+
 	now := time.Now()
 	entry := searchEntry{
 		result:   result,
 		ts:       now,
 		accessed: now,
 	}
-	
+
 	// Clean expired entries first
 	cleanExpiredSearchCache()
-	
+
 	// If cache is at capacity, remove LRU entry
 	if len(searchCache) >= searchCacheSize {
 		removeLRUSearchEntry()
 	}
-	
+
 	searchCache[query] = entry
 }
 
@@ -118,17 +118,17 @@ func removeLRUSearchEntry() {
 	if len(searchCache) == 0 {
 		return
 	}
-	
+
 	var oldestQuery string
 	var oldestTime time.Time = time.Now()
-	
+
 	for query, entry := range searchCache {
 		if entry.accessed.Before(oldestTime) {
 			oldestTime = entry.accessed
 			oldestQuery = query
 		}
 	}
-	
+
 	if oldestQuery != "" {
 		delete(searchCache, oldestQuery)
 	}
@@ -219,11 +219,11 @@ func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []op
 	}
 
 	go func() {
-		defer func() { 
+		defer func() {
 			if err := stream.Close(); err != nil {
 				logger.L.Debug("stream close error", "err", err)
 			}
-			close(outCh) 
+			close(outCh)
 		}()
 		for {
 			select {
@@ -246,7 +246,7 @@ func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []op
 				if strings.TrimSpace(delta) == "" {
 					continue
 				}
-				
+
 				// Try to send with timeout to prevent blocking
 				select {
 				case outCh <- delta:
