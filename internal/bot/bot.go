@@ -152,9 +152,11 @@ var baseCommands = []string{
 	"/chat <сообщение> – задать боту вопрос",
 	"/search <запрос> – выполнить поиск через OpenAI",
 	"/ping – проверка состояния",
-	"/start – добавить текущий чат в рассылку",
-	"/whitelist – показать список подключённых чатов",
+	"/start – добавить текущий чат в рассылку (работает в группах!)",
+	"/whitelist – показать список подключённых чатов с деталями",
 	"/remove <id> – убрать чат из списка",
+	"/groups – показать только групповые чаты",
+	"/stats – статистика по чатам",
 	"/model [имя] – показать или сменить модель (по умолчанию gpt-4.1)",
 	"/lunch – немедленно запросить идеи на обед",
 	"/brief – немедленно запросить вечерний дайджест",
@@ -350,16 +352,20 @@ func broadcastTaskResult(b *tb.Bot, chatID int64, text string) {
 		return
 	}
 
-	ids, err := LoadWhitelist()
+	// Use new active chats system for better group support
+	ids, err := GetActiveChats()
 	if err != nil {
-		logger.L.Error("load whitelist", "err", err)
+		logger.L.Error("load active chats", "err", err)
 		return
 	}
 
-	logger.L.Debug("broadcast task result", "recipients", len(ids))
+	logger.L.Info("broadcasting to active chats", "recipients", len(ids))
 	for _, id := range ids {
 		if err := sendLong(b, tb.ChatID(id), text); err != nil {
 			DefaultErrorHandler.HandleTelegramError(err, id)
+			logger.L.Warn("failed to send to chat", "chat_id", id, "error", err)
+		} else {
+			logger.L.Debug("message sent successfully", "chat_id", id)
 		}
 	}
 }
@@ -426,14 +432,18 @@ func SendStartupMessage(b *tb.Bot, chatID int64, msg string) {
 		}
 		return
 	}
-	ids, err := LoadWhitelist()
+	// Use new active chats system
+	ids, err := GetActiveChats()
 	if err != nil {
-		logger.L.Error("load whitelist", "err", err)
+		logger.L.Error("load active chats", "err", err)
 		return
 	}
+	logger.L.Info("sending startup message to chats", "recipients", len(ids))
 	for _, id := range ids {
 		if err := sendLong(b, tb.ChatID(id), msg); err != nil {
-			logger.L.Error("telegram send", "err", err)
+			logger.L.Error("telegram send", "chat_id", id, "err", err)
+		} else {
+			logger.L.Debug("startup message sent", "chat_id", id)
 		}
 	}
 }

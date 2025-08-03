@@ -31,7 +31,8 @@ func handleStart(c tb.Context) error {
 
 	handlerLogger.UserAction(c.Chat().ID, "start", nil)
 
-	if err := AddIDToWhitelist(c.Chat().ID); err != nil {
+	// Use enhanced chat management for better group support
+	if err := AddChatToWhitelist(c.Chat()); err != nil {
 		securityLogger.SecurityEvent("whitelist_add_failed", c.Chat().ID, map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -43,20 +44,85 @@ func handleStart(c tb.Context) error {
 		"action": "whitelist_added",
 	})
 	op.Success("User successfully activated")
-	return c.Send("Бот активирован")
+	// Provide different messages based on chat type
+	chatType := getChatTypeString(c.Chat().Type)
+	switch chatType {
+	case "group", "supergroup":
+		return c.Send(fmt.Sprintf("🎉 Бот активирован для группы \"%s\"!\n📢 Теперь все участники будут получать дайджесты", getChatTitle(c.Chat())))
+	case "private":
+		return c.Send("🤖 Бот активирован! Вы будете получать ежедневные дайджесты")
+	default:
+		return c.Send("✅ Бот активирован")
+	}
 }
 
 func handleWhitelist(c tb.Context) error {
 	logger.L.Debug("command whitelist", "chat", c.Chat().ID)
-	ids, err := LoadWhitelist()
-	if err != nil {
-		logger.L.Error("load whitelist", "err", err)
-		return c.Send("whitelist error")
+	
+	// Use enhanced chat formatting
+	chatList := FormatChatList()
+	if strings.Contains(chatList, "пуст") {
+		return c.Send("📭 Список активных чатов пуст")
 	}
-	if len(ids) == 0 {
-		return c.Send("Whitelist is empty")
+	
+	return c.Send(chatList, &tb.SendOptions{ParseMode: tb.ModeHTML})
+}
+
+func handleGroups(c tb.Context) error {
+	logger.L.Debug("command groups", "chat", c.Chat().ID)
+	
+	wlMu.RLock()
+	var groupChats []*ChatInfo
+	for _, chat := range chatRegistry {
+		if chat.Active && (chat.Type == "group" || chat.Type == "supergroup") {
+			groupChats = append(groupChats, chat)
+		}
 	}
-	return c.Send(FormatWhitelist(ids))
+	wlMu.RUnlock()
+	
+	if len(groupChats) == 0 {
+		return c.Send("👥 Нет активных групповых чатов")
+	}
+	
+	var result strings.Builder
+	result.WriteString("👥 Групповые чаты:\n\n")
+	
+	for _, chat := range groupChats {
+		icon := "👥"
+		if chat.Type == "supergroup" {
+			icon = "🏢"
+		}
+		
+		result.WriteString(fmt.Sprintf("%s <b>%s</b>\n", icon, chat.Title))
+		result.WriteString(fmt.Sprintf("   ID: <code>%d</code>\n", chat.ID))
+		result.WriteString(fmt.Sprintf("   Тип: %s\n", getChatTypeRussian(chat.Type)))
+		if chat.Username != "" {
+			result.WriteString(fmt.Sprintf("   @%s\n", chat.Username))
+		}
+		result.WriteString(fmt.Sprintf("   Добавлен: %s\n\n", chat.AddedAt.Format("02.01.2006 15:04")))
+	}
+	
+	result.WriteString("📝 <i>Чтобы добавить новую группу, напишите /start в нужной группе</i>")
+	
+	return c.Send(result.String(), &tb.SendOptions{ParseMode: tb.ModeHTML})
+}
+
+func handleStats(c tb.Context) error {
+	logger.L.Debug("command stats", "chat", c.Chat().ID)
+	
+	stats := GetChatStats()
+	
+	var result strings.Builder
+	result.WriteString("📈 <b>Статистика чатов:</b>\n\n")
+	result.WriteString(fmt.Sprintf("📊 Всего чатов: <b>%d</b>\n", stats["total"]))
+	result.WriteString(fmt.Sprintf("✅ Активных: <b>%d</b>\n\n", stats["active"]))
+	result.WriteString("📁 <b>По типам:</b>\n")
+	result.WriteString(fmt.Sprintf("👤 Личных: <b>%d</b>\n", stats["private"]))
+	result.WriteString(fmt.Sprintf("👥 Групп: <b>%d</b>\n", stats["group"]))
+	result.WriteString(fmt.Sprintf("🏢 Супергрупп: <b>%d</b>\n", stats["supergroup"]))
+	result.WriteString(fmt.Sprintf("📢 Каналов: <b>%d</b>\n", stats["channel"]))
+	
+	return c.Send(result.String(), &tb.SendOptions{ParseMode: tb.ModeHTML})
 }
 
 func handleRemove(c tb.Context) error {
@@ -284,10 +350,10 @@ func handleSearch() func(tb.Context) error {
 		result, err := OpenAISearch(q)
 		if err != nil {
 			logger.L.Error("openai search", "err", err)
-			return c.Send("search error")
+			return c.Send("🔍 Ошибка поиска. Попробуйте позже.")
 		}
 		if strings.TrimSpace(result) == "" {
-			return c.Send("no results")
+			return c.Send("🤔 Поиск не дал результатов. Попробуйте другой запрос.")
 		}
 		return replyLong(c, result)
 	}

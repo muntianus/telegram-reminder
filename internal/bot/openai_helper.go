@@ -357,7 +357,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 				res = err.Error()
 			}
 			if strings.TrimSpace(res) == "" {
-				res = "no results"
+				res = "Поиск не дал результатов"
 			}
 			toolMsgs = append(toolMsgs, openai.ChatCompletionMessage{
 				Role:       openai.ChatMessageRoleTool,
@@ -380,8 +380,16 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
-	// OpenAI result debug logging removed
-	if len(out) == 0 {
+	
+	// Log successful LLM responses with readable text
+	if len(out) > 0 {
+		// Create readable preview for logs
+		preview := out
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		logger.L.Info("LLM response generated", "model", model, "length", len(out), "preview", preview)
+	} else {
 		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)
 	}
 	return out, nil

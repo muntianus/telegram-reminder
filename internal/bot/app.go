@@ -91,6 +91,8 @@ func (b *Bot) Start() error {
 	b.TeleBot.Handle("/ping", handlePing)
 	b.TeleBot.Handle("/start", handleStart)
 	b.TeleBot.Handle("/whitelist", handleWhitelist)
+	b.TeleBot.Handle("/groups", handleGroups)
+	b.TeleBot.Handle("/stats", handleStats)
 	b.TeleBot.Handle("/remove", handleRemove)
 	b.TeleBot.Handle("/tasks", handleTasks)
 	b.TeleBot.Handle("/task", handleTask(b.Client))
