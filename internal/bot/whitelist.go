@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"telegram-reminder/internal/logger"
 	tb "gopkg.in/telebot.v3"
+	"telegram-reminder/internal/logger"
 )
 
 // ChatInfo stores information about a whitelisted chat
@@ -18,12 +18,12 @@ type ChatInfo struct {
 	Title    string    `json:"title"`    // Chat title for groups, username for private
 	Username string    `json:"username"` // Username if available
 	AddedAt  time.Time `json:"added_at"`
-	Active   bool      `json:"active"`   // Whether chat is active for broadcasts
+	Active   bool      `json:"active"` // Whether chat is active for broadcasts
 }
 
 var (
-	wlMu        sync.RWMutex
-	whitelistID []int64              // Legacy support
+	wlMu         sync.RWMutex
+	whitelistID  []int64             // Legacy support
 	chatRegistry map[int64]*ChatInfo // Enhanced chat management
 )
 
@@ -62,11 +62,11 @@ func LoadWhitelist() ([]int64, error) {
 func AddChatToWhitelist(chat *tb.Chat) error {
 	wlMu.Lock()
 	defer wlMu.Unlock()
-	
+
 	chatType := getChatTypeString(chat.Type)
 	title := getChatTitle(chat)
 	username := getChatUsername(chat)
-	
+
 	// Check if chat already exists
 	if existing, exists := chatRegistry[chat.ID]; exists {
 		// Update existing chat info
@@ -77,7 +77,7 @@ func AddChatToWhitelist(chat *tb.Chat) error {
 		logger.L.Info("chat updated", "id", chat.ID, "type", chatType, "title", title)
 		return nil
 	}
-	
+
 	// Add new chat
 	chatInfo := &ChatInfo{
 		ID:       chat.ID,
@@ -87,9 +87,9 @@ func AddChatToWhitelist(chat *tb.Chat) error {
 		AddedAt:  time.Now(),
 		Active:   true,
 	}
-	
+
 	chatRegistry[chat.ID] = chatInfo
-	
+
 	// Legacy support - add to old whitelist array
 	for _, v := range whitelistID {
 		if v == chat.ID {
@@ -98,7 +98,7 @@ func AddChatToWhitelist(chat *tb.Chat) error {
 		}
 	}
 	whitelistID = append(whitelistID, chat.ID)
-	
+
 	logger.L.Info("chat added", "id", chat.ID, "type", chatType, "title", title)
 	return nil
 }
@@ -115,7 +115,7 @@ func AddIDToWhitelist(id int64) error {
 		}
 	}
 	whitelistID = append(whitelistID, id)
-	
+
 	// Add to new registry if not exists
 	if _, exists := chatRegistry[id]; !exists {
 		chatRegistry[id] = &ChatInfo{
@@ -126,7 +126,7 @@ func AddIDToWhitelist(id int64) error {
 			Active:  true,
 		}
 	}
-	
+
 	wlMu.Unlock()
 	logger.L.Debug("whitelist add", "id", id)
 	return nil
@@ -162,19 +162,19 @@ func FormatWhitelist(ids []int64) string {
 func FormatChatList() string {
 	wlMu.RLock()
 	defer wlMu.RUnlock()
-	
+
 	if len(chatRegistry) == 0 {
 		return "📭 Список чатов пуст"
 	}
-	
+
 	var result strings.Builder
 	result.WriteString("📋 Активные чаты:\n\n")
-	
+
 	for _, chat := range chatRegistry {
 		if !chat.Active {
 			continue
 		}
-		
+
 		var icon string
 		switch chat.Type {
 		case "private":
@@ -188,12 +188,12 @@ func FormatChatList() string {
 		default:
 			icon = "💬"
 		}
-		
+
 		title := chat.Title
 		if title == "" {
 			title = fmt.Sprintf("Chat %d", chat.ID)
 		}
-		
+
 		result.WriteString(fmt.Sprintf("%s %s\n", icon, title))
 		result.WriteString(fmt.Sprintf("   ID: <code>%d</code>\n", chat.ID))
 		result.WriteString(fmt.Sprintf("   Тип: %s\n", getChatTypeRussian(chat.Type)))
@@ -202,7 +202,7 @@ func FormatChatList() string {
 		}
 		result.WriteString(fmt.Sprintf("   Добавлен: %s\n\n", chat.AddedAt.Format("02.01.2006 15:04")))
 	}
-	
+
 	return result.String()
 }
 
@@ -210,19 +210,19 @@ func FormatChatList() string {
 func GetActiveChats() ([]int64, error) {
 	wlMu.RLock()
 	defer wlMu.RUnlock()
-	
+
 	var activeIDs []int64
 	for _, chat := range chatRegistry {
 		if chat.Active {
 			activeIDs = append(activeIDs, chat.ID)
 		}
 	}
-	
+
 	// Fallback to legacy whitelist if registry is empty
 	if len(activeIDs) == 0 {
 		return append([]int64(nil), whitelistID...), nil
 	}
-	
+
 	return activeIDs, nil
 }
 
@@ -278,12 +278,12 @@ func getChatTypeRussian(chatType string) string {
 func DeactivateChat(id int64) error {
 	wlMu.Lock()
 	defer wlMu.Unlock()
-	
+
 	if chat, exists := chatRegistry[id]; exists {
 		chat.Active = false
 		logger.L.Info("chat deactivated", "id", id, "title", chat.Title)
 	}
-	
+
 	// Also remove from legacy whitelist
 	out := whitelistID[:0]
 	for _, v := range whitelistID {
@@ -292,7 +292,7 @@ func DeactivateChat(id int64) error {
 		}
 	}
 	whitelistID = out
-	
+
 	return nil
 }
 
@@ -300,7 +300,7 @@ func DeactivateChat(id int64) error {
 func GetChatStats() map[string]int {
 	wlMu.RLock()
 	defer wlMu.RUnlock()
-	
+
 	stats := map[string]int{
 		"total":      0,
 		"active":     0,
@@ -309,7 +309,7 @@ func GetChatStats() map[string]int {
 		"supergroup": 0,
 		"channel":    0,
 	}
-	
+
 	for _, chat := range chatRegistry {
 		stats["total"]++
 		if chat.Active {
@@ -317,6 +317,6 @@ func GetChatStats() map[string]int {
 		}
 		stats[chat.Type]++
 	}
-	
+
 	return stats
 }

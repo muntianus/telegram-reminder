@@ -380,7 +380,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
-	
+
 	// Log successful LLM responses with readable text
 	if len(out) > 0 {
 		// Create readable preview for logs

@@ -58,19 +58,19 @@ func handleStart(c tb.Context) error {
 
 func handleWhitelist(c tb.Context) error {
 	logger.L.Debug("command whitelist", "chat", c.Chat().ID)
-	
+
 	// Use enhanced chat formatting
 	chatList := FormatChatList()
 	if strings.Contains(chatList, "пуст") {
 		return c.Send("📭 Список активных чатов пуст")
 	}
-	
+
 	return c.Send(chatList, &tb.SendOptions{ParseMode: tb.ModeHTML})
 }
 
 func handleGroups(c tb.Context) error {
 	logger.L.Debug("command groups", "chat", c.Chat().ID)
-	
+
 	wlMu.RLock()
 	var groupChats []*ChatInfo
 	for _, chat := range chatRegistry {
@@ -79,20 +79,20 @@ func handleGroups(c tb.Context) error {
 		}
 	}
 	wlMu.RUnlock()
-	
+
 	if len(groupChats) == 0 {
 		return c.Send("👥 Нет активных групповых чатов")
 	}
-	
+
 	var result strings.Builder
 	result.WriteString("👥 Групповые чаты:\n\n")
-	
+
 	for _, chat := range groupChats {
 		icon := "👥"
 		if chat.Type == "supergroup" {
 			icon = "🏢"
 		}
-		
+
 		result.WriteString(fmt.Sprintf("%s <b>%s</b>\n", icon, chat.Title))
 		result.WriteString(fmt.Sprintf("   ID: <code>%d</code>\n", chat.ID))
 		result.WriteString(fmt.Sprintf("   Тип: %s\n", getChatTypeRussian(chat.Type)))
@@ -101,17 +101,17 @@ func handleGroups(c tb.Context) error {
 		}
 		result.WriteString(fmt.Sprintf("   Добавлен: %s\n\n", chat.AddedAt.Format("02.01.2006 15:04")))
 	}
-	
+
 	result.WriteString("📝 <i>Чтобы добавить новую группу, напишите /start в нужной группе</i>")
-	
+
 	return c.Send(result.String(), &tb.SendOptions{ParseMode: tb.ModeHTML})
 }
 
 func handleStats(c tb.Context) error {
 	logger.L.Debug("command stats", "chat", c.Chat().ID)
-	
+
 	stats := GetChatStats()
-	
+
 	var result strings.Builder
 	result.WriteString("📈 <b>Статистика чатов:</b>\n\n")
 	result.WriteString(fmt.Sprintf("📊 Всего чатов: <b>%d</b>\n", stats["total"]))
@@ -121,7 +121,7 @@ func handleStats(c tb.Context) error {
 	result.WriteString(fmt.Sprintf("👥 Групп: <b>%d</b>\n", stats["group"]))
 	result.WriteString(fmt.Sprintf("🏢 Супергрупп: <b>%d</b>\n", stats["supergroup"]))
 	result.WriteString(fmt.Sprintf("📢 Каналов: <b>%d</b>\n", stats["channel"]))
-	
+
 	return c.Send(result.String(), &tb.SendOptions{ParseMode: tb.ModeHTML})
 }
 
