@@ -82,11 +82,7 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 
 	msg := resp.Choices[0].Message
 
-	// Handle tool calls for web search
-	if config.EnableWebSearch && len(msg.ToolCalls) > 0 {
-		// This would integrate with the existing web search functionality
-		// For now, just return the content
-	}
+	// Handle tool calls for web search - integration would go here if needed
 
 	out := strings.TrimSpace(msg.Content)
 	// OpenAI result debug logging removed
@@ -160,11 +156,3 @@ func getWebSearchTool() openai.Tool {
 	}
 }
 
-// truncateString truncates a string to maxLen characters
-func truncateString(s string, maxLen int) string {
-	r := []rune(s)
-	if len(r) <= maxLen {
-		return s
-	}
-	return string(r[:maxLen]) + "..."
-}
