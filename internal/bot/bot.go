@@ -346,8 +346,6 @@ func broadcastTaskResult(b *tb.Bot, chatID int64, text string) {
 	if chatID != 0 {
 		if err := sendLong(b, tb.ChatID(chatID), text); err != nil {
 			DefaultErrorHandler.HandleTelegramError(err, chatID)
-		} else {
-			logger.L.Debug("telegram sent", "chat_id", chatID)
 		}
 		return
 	}
@@ -362,8 +360,6 @@ func broadcastTaskResult(b *tb.Bot, chatID int64, text string) {
 	for _, id := range ids {
 		if err := sendLong(b, tb.ChatID(id), text); err != nil {
 			DefaultErrorHandler.HandleTelegramError(err, id)
-		} else {
-			logger.L.Debug("telegram sent", "chat_id", id)
 		}
 	}
 }
@@ -390,12 +386,9 @@ func scheduleTask(s *gocron.Scheduler, task Task, job func()) error {
 		return err
 	}
 
-	// Register event listeners for monitoring
+	// Register event listeners for monitoring (debug logging removed to prevent spam)
 	j.RegisterEventListeners(
-		gocron.BeforeJobRuns(func(jobName string) { logger.L.Debug("job start", "job", task.Name) }),
-		gocron.AfterJobRuns(func(jobName string) { logger.L.Debug("job end", "job", task.Name) }),
 		gocron.WhenJobReturnsError(func(jobName string, err error) { logger.L.Error("job error", "job", task.Name, "err", err) }),
-		gocron.WhenJobReturnsNoError(func(jobName string) { logger.L.Debug("job success", "job", task.Name) }),
 	)
 	j.Tag(task.Name)
 

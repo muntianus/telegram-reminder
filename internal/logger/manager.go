@@ -108,9 +108,7 @@ func (lm *LoggerManager) SetModuleLevel(module string, level slog.Level) {
 	lm.config.ModuleLevels[module] = level
 	
 	// Recreate logger with new level
-	if _, exists := lm.loggers[module]; exists {
-		delete(lm.loggers, module)
-	}
+	delete(lm.loggers, module)
 }
 
 // EnableTelegramLogging enables telegram logging for critical events
