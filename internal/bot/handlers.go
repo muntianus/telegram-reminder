@@ -284,10 +284,10 @@ func handleSearch() func(tb.Context) error {
 		result, err := OpenAISearch(q)
 		if err != nil {
 			logger.L.Error("openai search", "err", err)
-			return c.Send("search error")
+			return c.Send("🔍 Ошибка поиска. Попробуйте позже.")
 		}
 		if strings.TrimSpace(result) == "" {
-			return c.Send("no results")
+			return c.Send("🤔 Поиск не дал результатов. Попробуйте другой запрос.")
 		}
 		return replyLong(c, result)
 	}

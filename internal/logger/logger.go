@@ -1,11 +1,16 @@
 package logger
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -24,11 +29,17 @@ func init() {
 			case slog.LevelKey:
 				return slog.String("level", strings.ToUpper(a.Value.String()))
 			default:
+				// Preserve Unicode characters in string values without escaping
+				if a.Value.Kind() == slog.KindString {
+					// Return the string value as-is to prevent Unicode escaping
+					return a
+				}
 				return a
 			}
 		},
 	}
-	L = slog.New(slog.NewTextHandler(os.Stderr, handlerOpts))
+	// Use custom handler that preserves Unicode without escaping
+	L = slog.New(NewUnicodeTextHandler(os.Stderr, handlerOpts))
 }
 
 // SetLogger replaces the global logger. Useful in tests.
@@ -91,4 +102,136 @@ func Warn(msg string, args ...interface{}) {
 // Error logs an error message (compatibility)
 func Error(msg string, args ...interface{}) {
 	L.Error(msg, args...)
+}
+
+// UnicodeTextHandler is a text handler that preserves Unicode characters without escaping
+type UnicodeTextHandler struct {
+	w    io.Writer
+	opts *slog.HandlerOptions
+}
+
+// NewUnicodeTextHandler creates a new Unicode-preserving text handler
+func NewUnicodeTextHandler(w io.Writer, opts *slog.HandlerOptions) *UnicodeTextHandler {
+	if opts == nil {
+		opts = &slog.HandlerOptions{}
+	}
+	return &UnicodeTextHandler{w: w, opts: opts}
+}
+
+// Enabled reports whether the handler handles records at the given level
+func (h *UnicodeTextHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	minLevel := slog.LevelInfo
+	if h.opts.Level != nil {
+		minLevel = h.opts.Level.Level()
+	}
+	return level >= minLevel
+}
+
+// Handle formats and writes a log record
+func (h *UnicodeTextHandler) Handle(ctx context.Context, r slog.Record) error {
+	buf := make([]byte, 0, 1024)
+	
+	// Apply ReplaceAttr if set
+	replaceAttr := h.opts.ReplaceAttr
+	if replaceAttr == nil {
+		replaceAttr = func(groups []string, a slog.Attr) slog.Attr { return a }
+	}
+	
+	// Format time
+	timeAttr := replaceAttr(nil, slog.Time(slog.TimeKey, r.Time))
+	buf = fmt.Appendf(buf, "%s ", timeAttr.Value.String())
+	
+	// Format level
+	levelAttr := replaceAttr(nil, slog.Any(slog.LevelKey, r.Level))
+	buf = fmt.Appendf(buf, "[%s] ", levelAttr.Value.String())
+	
+	// Format message
+	buf = fmt.Appendf(buf, "%s", r.Message)
+	
+	// Format attributes
+	r.Attrs(func(a slog.Attr) bool {
+		a = replaceAttr(nil, a)
+		buf = append(buf, ' ')
+		buf = h.appendAttr(buf, a)
+		return true
+	})
+	
+	buf = append(buf, '\n')
+	_, err := h.w.Write(buf)
+	return err
+}
+
+// appendAttr appends a single attribute to the buffer, preserving Unicode
+func (h *UnicodeTextHandler) appendAttr(buf []byte, a slog.Attr) []byte {
+	if a.Equal(slog.Attr{}) {
+		return buf
+	}
+	
+	buf = append(buf, a.Key...)
+	buf = append(buf, '=')
+	
+	switch a.Value.Kind() {
+	case slog.KindString:
+		// Preserve Unicode characters without escaping
+		s := a.Value.String()
+		if needsQuoting(s) {
+			buf = append(buf, '"')
+			buf = append(buf, s...)
+			buf = append(buf, '"')
+		} else {
+			buf = append(buf, s...)
+		}
+	case slog.KindInt64:
+		buf = strconv.AppendInt(buf, a.Value.Int64(), 10)
+	case slog.KindUint64:
+		buf = strconv.AppendUint(buf, a.Value.Uint64(), 10)
+	case slog.KindFloat64:
+		buf = strconv.AppendFloat(buf, a.Value.Float64(), 'g', -1, 64)
+	case slog.KindBool:
+		buf = strconv.AppendBool(buf, a.Value.Bool())
+	default:
+		// For other types, use the string representation
+		s := a.Value.String()
+		if needsQuoting(s) {
+			buf = append(buf, '"')
+			buf = append(buf, s...)
+			buf = append(buf, '"')
+		} else {
+			buf = append(buf, s...)
+		}
+	}
+	
+	return buf
+}
+
+// needsQuoting returns true if the string needs to be quoted
+func needsQuoting(s string) bool {
+	if len(s) == 0 {
+		return true
+	}
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			return true
+		}
+		if r < 32 || r == '"' || r == '\\' {
+			return true
+		}
+		i += size
+	}
+	return false
+}
+
+// WithAttrs returns a new handler with the given attributes
+func (h *UnicodeTextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	// For simplicity, return the same handler
+	// In a full implementation, you'd store these attrs and include them in Handle
+	return h
+}
+
+// WithGroup returns a new handler with the given group name
+func (h *UnicodeTextHandler) WithGroup(name string) slog.Handler {
+	// For simplicity, return the same handler
+	// In a full implementation, you'd track the group name
+	return h
 }

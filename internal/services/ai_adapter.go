@@ -85,9 +85,16 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 	// Handle tool calls for web search - integration would go here if needed
 
 	out := strings.TrimSpace(msg.Content)
-	// OpenAI result debug logging removed
-
-	if len(out) == 0 {
+	
+	// Log successful LLM responses with readable text
+	if len(out) > 0 {
+		// Create readable preview for logs
+		preview := out
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		logger.L.Info("LLM response generated", "model", getRuntimeConfig().CurrentModel, "length", len(out), "preview", preview)
+	} else {
 		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)
 	}
 
