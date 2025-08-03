@@ -86,11 +86,10 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 	if config.EnableWebSearch && len(msg.ToolCalls) > 0 {
 		// This would integrate with the existing web search functionality
 		// For now, just return the content
-		logger.L.Debug("tool calls detected", "count", len(msg.ToolCalls))
 	}
 
 	out := strings.TrimSpace(msg.Content)
-	logger.L.Debug("openai result", "length", len(out), "preview", truncateString(out, 200))
+	// OpenAI result debug logging removed
 
 	if len(out) == 0 {
 		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)

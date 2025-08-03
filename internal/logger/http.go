@@ -9,17 +9,12 @@ type loggingTransport struct{ base http.RoundTripper }
 
 func (t loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
-	if req.Body != nil && req.ContentLength > 0 {
-		L.Debug("http request", "method", req.Method, "url", req.URL.String(), "bytes", req.ContentLength)
-	} else {
-		L.Debug("http request", "method", req.Method, "url", req.URL.String())
-	}
+	// HTTP request/response logging removed to prevent Telegram spam
 	resp, err := t.base.RoundTrip(req)
 	if err != nil {
 		L.Error("http error", "method", req.Method, "url", req.URL.String(), "err", err)
 		return nil, err
 	}
-	L.Debug("http response", "method", req.Method, "url", req.URL.String(), "status", resp.StatusCode, "duration", time.Since(start))
 	return resp, nil
 }
 

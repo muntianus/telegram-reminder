@@ -213,7 +213,7 @@ func StreamChatCompletion(ctx context.Context, client StreamCompleter, msgs []op
 
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
-		logger.L.Debug("openai stream error", "err", err)
+		// OpenAI stream error logging removed
 		close(outCh)
 		return outCh, err
 	}
@@ -331,10 +331,10 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 
 	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		logger.L.Debug("openai error", "err", err)
+		// OpenAI error logging removed
 		return "", err
 	}
-	logger.L.Debug("openai response", "choices", len(resp.Choices))
+	// OpenAI response debug logging removed
 	if len(resp.Choices) == 0 {
 		return "", nil
 	}
@@ -380,7 +380,7 @@ func ChatCompletion(ctx context.Context, client ChatCompleter, msgs []openai.Cha
 		}
 	}
 	out := strings.TrimSpace(msg.Content)
-	logger.L.Debug("openai result", "length", len(out), "preview", logger.Truncate(out, 200))
+	// OpenAI result debug logging removed
 	if len(out) == 0 {
 		logger.L.Warn("empty openai response", "msg_content", msg.Content, "msg_role", msg.Role)
 	}
