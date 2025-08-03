@@ -361,7 +361,7 @@ func scheduleTask(s *gocron.Scheduler, task Task, job func()) error {
 		if timeStr == "" {
 			timeStr = "00:00"
 		}
-		logger.L.Debug("schedule daily", "name", task.Name, "time", timeStr)
+		logger.L.Debug("schedule daily", "name", task.Name, "schedule_time", timeStr)
 		j, err = s.Every(1).Day().At(timeStr).Do(job)
 	}
 

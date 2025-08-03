@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"log/slog"
@@ -28,14 +29,24 @@ func (h *TelegramHandler) Enabled(ctx context.Context, l slog.Level) bool {
 }
 
 func (h *TelegramHandler) Handle(ctx context.Context, r slog.Record) error {
-	var attrs []any
+	var attrs []string
 	r.Attrs(func(a slog.Attr) bool {
-		attrs = append(attrs, a.Key, a.Value.Any())
+		// Safely handle different value types
+		var value string
+		switch a.Value.Kind() {
+		case slog.KindTime:
+			value = a.Value.Time().Format(time.RFC3339)
+		case slog.KindString:
+			value = a.Value.String()
+		default:
+			value = fmt.Sprintf("%v", a.Value.Any())
+		}
+		attrs = append(attrs, fmt.Sprintf("%s=%s", a.Key, value))
 		return true
 	})
 	text := fmt.Sprintf("%s [%s] %s", r.Time.Format(time.RFC3339), r.Level.String(), r.Message)
 	if len(attrs) > 0 {
-		text += " " + fmt.Sprint(attrs...)
+		text += " " + fmt.Sprintf("{%s}", strings.Join(attrs, ", "))
 	}
 	api := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", h.token)
 	values := url.Values{
