@@ -155,4 +155,3 @@ func getWebSearchTool() openai.Tool {
 		},
 	}
 }
-

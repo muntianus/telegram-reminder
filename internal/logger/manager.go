@@ -21,12 +21,12 @@ type LoggerManager struct {
 
 // GlobalLogConfig defines global logging configuration
 type GlobalLogConfig struct {
-	DefaultLevel  slog.Level
-	Format        LogFormat
-	EnableColors  bool
-	ModuleLevels  map[string]slog.Level
-	TelegramToken string
-	TelegramChat  int64
+	DefaultLevel   slog.Level
+	Format         LogFormat
+	EnableColors   bool
+	ModuleLevels   map[string]slog.Level
+	TelegramToken  string
+	TelegramChat   int64
 	EnableTelegram bool
 }
 
@@ -41,15 +41,15 @@ func GetLoggerManager() *LoggerManager {
 // LoadLogConfig loads logging configuration from environment
 func LoadLogConfig() GlobalLogConfig {
 	config := GlobalLogConfig{
-		DefaultLevel:  parseLevel(os.Getenv("LOG_LEVEL")),
-		Format:        parseFormat(os.Getenv("LOG_FORMAT")),
-		EnableColors:  parseBool(os.Getenv("LOG_COLORS"), true),
-		ModuleLevels:  parseModuleLevels(os.Getenv("LOG_MODULE_LEVELS")),
-		TelegramToken: os.Getenv("TELEGRAM_TOKEN"),
-		TelegramChat:  parseInt64(os.Getenv("LOG_TELEGRAM_CHAT")),
+		DefaultLevel:   parseLevel(os.Getenv("LOG_LEVEL")),
+		Format:         parseFormat(os.Getenv("LOG_FORMAT")),
+		EnableColors:   parseBool(os.Getenv("LOG_COLORS"), true),
+		ModuleLevels:   parseModuleLevels(os.Getenv("LOG_MODULE_LEVELS")),
+		TelegramToken:  os.Getenv("TELEGRAM_TOKEN"),
+		TelegramChat:   parseInt64(os.Getenv("LOG_TELEGRAM_CHAT")),
 		EnableTelegram: parseBool(os.Getenv("LOG_TELEGRAM_ENABLE"), false),
 	}
-	
+
 	return config
 }
 
@@ -101,12 +101,12 @@ func (lm *LoggerManager) GetLogger(module string) *StructuredLogger {
 func (lm *LoggerManager) SetModuleLevel(module string, level slog.Level) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
-	
+
 	if lm.config.ModuleLevels == nil {
 		lm.config.ModuleLevels = make(map[string]slog.Level)
 	}
 	lm.config.ModuleLevels[module] = level
-	
+
 	// Recreate logger with new level
 	delete(lm.loggers, module)
 }
@@ -122,7 +122,7 @@ func (lm *LoggerManager) EnableTelegramLogging() {
 func (lm *LoggerManager) GetModuleLoggers() map[string]*StructuredLogger {
 	lm.mu.RLock()
 	defer lm.mu.RUnlock()
-	
+
 	result := make(map[string]*StructuredLogger)
 	for k, v := range lm.loggers {
 		result[k] = v
@@ -173,7 +173,7 @@ func parseModuleLevels(config string) map[string]slog.Level {
 	if config == "" {
 		return result
 	}
-	
+
 	// Format: "module1=debug,module2=info,module3=warn"
 	pairs := strings.Split(config, ",")
 	for _, pair := range pairs {
@@ -184,7 +184,7 @@ func parseModuleLevels(config string) map[string]slog.Level {
 			result[module] = level
 		}
 	}
-	
+
 	return result
 }
 

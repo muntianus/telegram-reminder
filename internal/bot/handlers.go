@@ -25,12 +25,12 @@ func handlePing(c tb.Context) error {
 func handleStart(c tb.Context) error {
 	handlerLogger := logger.GetHandlerLogger()
 	securityLogger := logger.GetSecurityLogger()
-	
+
 	op := handlerLogger.Operation("user_start")
 	op.WithContext("user_id", c.Chat().ID)
-	
+
 	handlerLogger.UserAction(c.Chat().ID, "start", nil)
-	
+
 	if err := AddIDToWhitelist(c.Chat().ID); err != nil {
 		securityLogger.SecurityEvent("whitelist_add_failed", c.Chat().ID, map[string]interface{}{
 			"error": err.Error(),
@@ -38,7 +38,7 @@ func handleStart(c tb.Context) error {
 		op.Failure("Failed to add user to whitelist", err)
 		return c.Send("Ошибка активации")
 	}
-	
+
 	securityLogger.SecurityEvent("user_activated", c.Chat().ID, map[string]interface{}{
 		"action": "whitelist_added",
 	})
@@ -227,10 +227,10 @@ func handleChat(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
 		handlerLogger := logger.GetHandlerLogger()
 		openaiLogger := logger.GetOpenAILogger()
-		
+
 		op := handlerLogger.Operation("chat_completion")
 		op.WithContext("user_id", c.Chat().ID)
-		
+
 		q := sanitizeInput(c.Message().Payload)
 		if err := validateChatMessage(q); err != nil {
 			handlerLogger.Debug("Invalid chat message", "error", err, "user_id", c.Chat().ID)
@@ -241,34 +241,34 @@ func handleChat(client ChatCompleter) func(tb.Context) error {
 			op.Failure("Empty chat message", nil)
 			return c.Send("Usage: /chat <message>")
 		}
-		
+
 		op.WithContext("query_length", len(q))
 		op.Step("validating_input")
-		
+
 		handlerLogger.UserAction(c.Chat().ID, "chat", map[string]interface{}{
 			"query_length": len(q),
-			"model": getRuntimeConfig().CurrentModel,
+			"model":        getRuntimeConfig().CurrentModel,
 		})
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
-		
+
 		op.Step("calling_openai_api")
 		startTime := time.Now()
-		
+
 		resp, err := UserCompletion(ctx, client, q, getRuntimeConfig().CurrentModel)
 		duration := time.Since(startTime)
-		
+
 		openaiLogger.APICall("openai", "chat_completion", err == nil, duration, err)
-		
+
 		if err != nil {
 			op.Failure("OpenAI API call failed", err)
 			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, getRuntimeConfig().CurrentModel))
 		}
-		
+
 		op.WithContext("response_length", len(resp))
 		op.Success("Chat completion successful", "response_length", len(resp))
-		
+
 		return sendLong(c.Bot(), c.Sender(), resp)
 	}
 }

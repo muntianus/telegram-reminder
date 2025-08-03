@@ -62,7 +62,7 @@ func NewStructuredLogger(module string, config LoggerConfig) *StructuredLogger {
 	}
 
 	baseLogger := slog.New(handler)
-	
+
 	// Add module context to all logs
 	if module != "" {
 		baseLogger = baseLogger.With("module", module)
@@ -187,11 +187,11 @@ func (ol *OperationLogger) Success(message string, extraAttrs ...interface{}) {
 		"duration", duration,
 		"status", "success",
 	}
-	
+
 	for k, v := range ol.context {
 		attrs = append(attrs, k, v)
 	}
-	
+
 	attrs = append(attrs, extraAttrs...)
 	ol.Info(message, attrs...)
 }
@@ -205,11 +205,11 @@ func (ol *OperationLogger) Failure(message string, err error, extraAttrs ...inte
 		"status", "failure",
 		"error", err,
 	}
-	
+
 	for k, v := range ol.context {
 		attrs = append(attrs, k, v)
 	}
-	
+
 	attrs = append(attrs, extraAttrs...)
 	ol.Error(message, attrs...)
 }
@@ -220,25 +220,25 @@ func (ol *OperationLogger) Step(step string, attrs ...interface{}) {
 		"operation", ol.operation,
 		"step", step,
 	}
-	
+
 	for k, v := range ol.context {
 		stepAttrs = append(stepAttrs, k, v)
 	}
-	
+
 	stepAttrs = append(stepAttrs, attrs...)
 	ol.Debug("Operation step", stepAttrs...)
 }
 
 // PrettyHandler provides human-readable log formatting
 type PrettyHandler struct {
-	level       slog.Level
+	level        slog.Level
 	enableColors bool
 }
 
 // NewPrettyHandler creates a new pretty-formatted handler
 func NewPrettyHandler(level slog.Level, enableColors bool) *PrettyHandler {
 	return &PrettyHandler{
-		level:       level,
+		level:        level,
 		enableColors: enableColors,
 	}
 }
@@ -249,16 +249,16 @@ func (h *PrettyHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	var b strings.Builder
-	
+
 	// Timestamp
 	b.WriteString(r.Time.Format("15:04:05"))
 	b.WriteString(" ")
-	
+
 	// Level with colors
 	levelStr := h.formatLevel(r.Level)
 	b.WriteString(levelStr)
 	b.WriteString(" ")
-	
+
 	// Module (if present)
 	var module string
 	var attrs []slog.Attr
@@ -270,7 +270,7 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 		attrs = append(attrs, a)
 		return true
 	})
-	
+
 	if module != "" {
 		if h.enableColors {
 			b.WriteString(fmt.Sprintf("\033[36m[%s]\033[0m ", module))
@@ -278,10 +278,10 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 			b.WriteString(fmt.Sprintf("[%s] ", module))
 		}
 	}
-	
+
 	// Message
 	b.WriteString(r.Message)
-	
+
 	// Attributes
 	if len(attrs) > 0 {
 		b.WriteString(" {")
@@ -293,9 +293,9 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 		b.WriteString("}")
 	}
-	
+
 	b.WriteString("\n")
-	
+
 	_, err := os.Stderr.Write([]byte(b.String()))
 	return err
 }
@@ -304,7 +304,7 @@ func (h *PrettyHandler) formatLevel(level slog.Level) string {
 	if !h.enableColors {
 		return fmt.Sprintf("[%s]", level.String())
 	}
-	
+
 	switch level {
 	case slog.LevelDebug:
 		return "\033[37m[DEBUG]\033[0m" // White
@@ -322,7 +322,7 @@ func (h *PrettyHandler) formatLevel(level slog.Level) string {
 func (h *PrettyHandler) formatAttribute(attr slog.Attr) string {
 	key := attr.Key
 	value := h.formatValue(attr.Value)
-	
+
 	if h.enableColors {
 		return fmt.Sprintf("\033[35m%s\033[0m=\033[37m%s\033[0m", key, value)
 	}
