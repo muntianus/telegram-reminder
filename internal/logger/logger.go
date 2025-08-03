@@ -45,6 +45,7 @@ func GetLogger() *slog.Logger {
 	return L
 }
 
+// parseLevel parses string level to slog.Level
 func parseLevel(l string) slog.Level {
 	switch strings.ToLower(l) {
 	case "debug":
@@ -68,4 +69,26 @@ func EnableTelegramLogging(token string, chatID int64, level slog.Level) {
 	defer mu.Unlock()
 	th := NewTelegramHandler(token, chatID, level)
 	L = slog.New(newMulti(L.Handler(), th))
+}
+
+// Legacy compatibility functions
+
+// Info logs an info message (compatibility)
+func Info(msg string, args ...interface{}) {
+	L.Info(msg, args...)
+}
+
+// Debug logs a debug message (compatibility)
+func Debug(msg string, args ...interface{}) {
+	L.Debug(msg, args...)
+}
+
+// Warn logs a warning message (compatibility)
+func Warn(msg string, args ...interface{}) {
+	L.Warn(msg, args...)
+}
+
+// Error logs an error message (compatibility)
+func Error(msg string, args ...interface{}) {
+	L.Error(msg, args...)
 }

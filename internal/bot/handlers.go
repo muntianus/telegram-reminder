@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"telegram-reminder/internal/logger"
 
@@ -16,15 +17,32 @@ import (
 // --- HANDLER FUNCTIONS ---
 
 func handlePing(c tb.Context) error {
-	logger.L.Debug("command ping", "chat", c.Chat().ID)
+	handlerLogger := logger.GetHandlerLogger()
+	handlerLogger.UserAction(c.Chat().ID, "ping", nil)
 	return c.Send("pong")
 }
 
 func handleStart(c tb.Context) error {
-	logger.L.Debug("command start", "chat", c.Chat().ID)
+	handlerLogger := logger.GetHandlerLogger()
+	securityLogger := logger.GetSecurityLogger()
+	
+	op := handlerLogger.Operation("user_start")
+	op.WithContext("user_id", c.Chat().ID)
+	
+	handlerLogger.UserAction(c.Chat().ID, "start", nil)
+	
 	if err := AddIDToWhitelist(c.Chat().ID); err != nil {
-		logger.L.Error("whitelist add", "err", err)
+		securityLogger.SecurityEvent("whitelist_add_failed", c.Chat().ID, map[string]interface{}{
+			"error": err.Error(),
+		})
+		op.Failure("Failed to add user to whitelist", err)
+		return c.Send("Ошибка активации")
 	}
+	
+	securityLogger.SecurityEvent("user_activated", c.Chat().ID, map[string]interface{}{
+		"action": "whitelist_added",
+	})
+	op.Success("User successfully activated")
 	return c.Send("Бот активирован")
 }
 
@@ -207,22 +225,50 @@ func handleBlockchain(apiURL string) func(tb.Context) error {
 
 func handleChat(client ChatCompleter) func(tb.Context) error {
 	return func(c tb.Context) error {
-		logger.L.Debug("command chat", "chat", c.Chat().ID)
+		handlerLogger := logger.GetHandlerLogger()
+		openaiLogger := logger.GetOpenAILogger()
+		
+		op := handlerLogger.Operation("chat_completion")
+		op.WithContext("user_id", c.Chat().ID)
+		
 		q := sanitizeInput(c.Message().Payload)
 		if err := validateChatMessage(q); err != nil {
-			logger.L.Debug("invalid chat message", "err", err)
+			handlerLogger.Debug("Invalid chat message", "error", err, "user_id", c.Chat().ID)
+			op.Failure("Chat message validation failed", err)
 			return c.Send("Message too long or invalid")
 		}
 		if q == "" {
+			op.Failure("Empty chat message", nil)
 			return c.Send("Usage: /chat <message>")
 		}
+		
+		op.WithContext("query_length", len(q))
+		op.Step("validating_input")
+		
+		handlerLogger.UserAction(c.Chat().ID, "chat", map[string]interface{}{
+			"query_length": len(q),
+			"model": getRuntimeConfig().CurrentModel,
+		})
+		
 		ctx, cancel := context.WithTimeout(context.Background(), OpenAITimeout)
 		defer cancel()
+		
+		op.Step("calling_openai_api")
+		startTime := time.Now()
+		
 		resp, err := UserCompletion(ctx, client, q, getRuntimeConfig().CurrentModel)
+		duration := time.Since(startTime)
+		
+		openaiLogger.APICall("openai", "chat_completion", err == nil, duration, err)
+		
 		if err != nil {
-			logger.L.Error("openai error", "command", "chat", "model", getRuntimeConfig().CurrentModel, "err", err)
+			op.Failure("OpenAI API call failed", err)
 			return c.Send(DefaultErrorHandler.HandleOpenAIError(err, getRuntimeConfig().CurrentModel))
 		}
+		
+		op.WithContext("response_length", len(resp))
+		op.Success("Chat completion successful", "response_length", len(resp))
+		
 		return sendLong(c.Bot(), c.Sender(), resp)
 	}
 }
