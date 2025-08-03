@@ -66,7 +66,7 @@ func (b *Bot) Start() error {
 	logger.L.Info("authorized", "user", b.TeleBot.Me.Username)
 
 	if b.Config.LogChatID != 0 {
-		logger.EnableTelegramLogging(b.Config.TelegramToken, b.Config.LogChatID, slog.LevelDebug)
+		logger.EnableTelegramLogging(b.Config.TelegramToken, b.Config.LogChatID, slog.LevelError)
 	}
 
 	b.TeleBot.Use(logger.TelebotMiddleware())
