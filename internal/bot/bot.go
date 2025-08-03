@@ -307,15 +307,36 @@ func createTaskJob(task Task, client ChatCompleter, b *tb.Bot, chatID int64) fun
 			model = task.Model
 		}
 
-		logger.L.Debug("run task", "name", task.Name, "model", model)
-
+		taskLogger := logger.GetTaskLogger()
+		openaiLogger := logger.GetOpenAILogger()
+		
+		op := taskLogger.Operation("task_execution")
+		op.WithContext("task_name", task.Name)
+		op.WithContext("model", model)
+		op.WithContext("chat_id", chatID)
+		
+		op.Step("preparing_prompt")
 		prompt := applyTemplate(task.Prompt, model)
+		
+		op.Step("calling_openai")
+		startTime := time.Now()
 		resp, err := SystemCompletion(ctx, client, prompt, model)
+		duration := time.Since(startTime)
+		
+		openaiLogger.APICall("openai", "system_completion", err == nil, duration, err)
+		
 		if err != nil {
+			op.Failure("Task execution failed", err)
 			DefaultErrorHandler.HandleTaskError(err, task.Name, model)
 			return
 		}
-
+		
+		op.WithContext("response_length", len(resp))
+		op.Step("broadcasting_result")
+		
+		taskLogger.TaskExecution(task.Name, true, time.Since(startTime), nil)
+		op.Success("Task completed successfully")
+		
 		broadcastTaskResult(b, chatID, resp)
 	}
 }
