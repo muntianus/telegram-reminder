@@ -1,28 +1,25 @@
-.env
-
-# Go build artifacts
-/bin/
-/build/
-/dist/
-
-# Compiled binary outputs
+# Go
+bin/
+build/
+dist/
+coverage.out
+*.test
 *.exe
 *.dll
 *.so
-*.dylib
-*.test
 
-# Logs
-*.log
+# Environment
+.env
+.env.*
 
-# Vendor and dependencies
-/vendor/
+# Python caches (for embedded samples)
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
 
-# Docker
-.dockerignore
-Dockerfile*
-
-# Tools
-/bot
-telegram-reminder
+# Editors / OS
 .DS_Store
+.idea/
+.vscode/
