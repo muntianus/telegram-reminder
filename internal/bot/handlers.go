@@ -15,12 +15,31 @@ import (
 	tb "gopkg.in/telebot.v3"
 )
 
-// RegisterHandlers регистрирует все основные команды Telegram-бота (ping, start, whitelist, remove, tasks, task, model, lunch, brief, blockchain, chat).
+// RegisterHandlers регистрирует все основные команды Telegram-бота (ping, start, whitelist, remove, tasks, task, model, lunch, brief, blockchain, chat, metrics, crypto).
 // Использует переданные *tb.Bot, ChatCompleter и config.Config для доступа к API и настройкам.
 func RegisterHandlers(b *tb.Bot, client ChatCompleter, cfg config.Config) {
 	// /ping — проверка состояния
 	b.Handle("/ping", func(c tb.Context) error {
+		IncrementCommands()
 		return c.Send("pong")
+	})
+
+	// /metrics — показать метрики бота
+	b.Handle("/metrics", func(c tb.Context) error {
+		IncrementCommands()
+		metrics := GetMetrics()
+		return c.Send(metrics, tb.ModeMarkdown)
+	})
+
+	// /crypto — котировки криптовалют
+	b.Handle("/crypto", func(c tb.Context) error {
+		IncrementCommands()
+		quotes, err := GetCryptoQuotes()
+		if err != nil {
+			IncrementErrors(fmt.Sprintf("crypto error: %v", err))
+			return c.Send("❌ Не удалось получить котировки: " + err.Error())
+		}
+		return c.Send(quotes, tb.ModeMarkdown)
 	})
 
 	// /start — добавить чат в whitelist
