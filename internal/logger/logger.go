@@ -130,24 +130,24 @@ func (h *UnicodeTextHandler) Enabled(ctx context.Context, level slog.Level) bool
 // Handle formats and writes a log record
 func (h *UnicodeTextHandler) Handle(ctx context.Context, r slog.Record) error {
 	buf := make([]byte, 0, 1024)
-	
+
 	// Apply ReplaceAttr if set
 	replaceAttr := h.opts.ReplaceAttr
 	if replaceAttr == nil {
 		replaceAttr = func(groups []string, a slog.Attr) slog.Attr { return a }
 	}
-	
+
 	// Format time
 	timeAttr := replaceAttr(nil, slog.Time(slog.TimeKey, r.Time))
 	buf = fmt.Appendf(buf, "%s ", timeAttr.Value.String())
-	
+
 	// Format level
 	levelAttr := replaceAttr(nil, slog.Any(slog.LevelKey, r.Level))
 	buf = fmt.Appendf(buf, "[%s] ", levelAttr.Value.String())
-	
+
 	// Format message
 	buf = fmt.Appendf(buf, "%s", r.Message)
-	
+
 	// Format attributes
 	r.Attrs(func(a slog.Attr) bool {
 		a = replaceAttr(nil, a)
@@ -155,7 +155,7 @@ func (h *UnicodeTextHandler) Handle(ctx context.Context, r slog.Record) error {
 		buf = h.appendAttr(buf, a)
 		return true
 	})
-	
+
 	buf = append(buf, '\n')
 	_, err := h.w.Write(buf)
 	return err
@@ -166,10 +166,10 @@ func (h *UnicodeTextHandler) appendAttr(buf []byte, a slog.Attr) []byte {
 	if a.Equal(slog.Attr{}) {
 		return buf
 	}
-	
+
 	buf = append(buf, a.Key...)
 	buf = append(buf, '=')
-	
+
 	switch a.Value.Kind() {
 	case slog.KindString:
 		// Preserve Unicode characters without escaping
@@ -200,7 +200,7 @@ func (h *UnicodeTextHandler) appendAttr(buf []byte, a slog.Attr) []byte {
 			buf = append(buf, s...)
 		}
 	}
-	
+
 	return buf
 }
 

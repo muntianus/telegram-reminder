@@ -85,7 +85,7 @@ func (a *OpenAIAdapter) chatCompletion(ctx context.Context, msgs []openai.ChatCo
 	// Handle tool calls for web search - integration would go here if needed
 
 	out := strings.TrimSpace(msg.Content)
-	
+
 	// Log successful LLM responses with readable text
 	if len(out) > 0 {
 		// Create readable preview for logs
