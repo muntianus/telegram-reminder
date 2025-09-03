@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"telegram-reminder/internal/logger"
@@ -38,100 +36,12 @@ var webSearchTool = openai.Tool{
 // overridden in tests.
 var searchFunc = defaultWebSearch
 
-type searchEntry struct {
-	result   string
-	ts       time.Time
-	accessed time.Time
-}
-
-var (
-	searchCache     = map[string]searchEntry{}
-	searchCacheTTL  = 10 * time.Minute
-	searchCacheSize = 100 // Maximum cache entries
-	searchMu        sync.RWMutex
-	searchAPIFunc   = realSearchAPI
-)
-
-func realSearchAPI(ctx context.Context, query string) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY not set")
-	}
-	return ResponsesCompletion(ctx, apiKey, query, getRuntimeConfig().CurrentModel)
-}
-
 func normalizeQuery(q string) string {
 	q = strings.ToLower(strings.TrimSpace(q))
 	if q == "" {
 		return q
 	}
 	return strings.Join(strings.Fields(q), " ")
-}
-
-func getCachedSearch(query string) (string, bool) {
-	searchMu.Lock()
-	defer searchMu.Unlock()
-	e, ok := searchCache[query]
-	if !ok || time.Since(e.ts) > searchCacheTTL {
-		return "", false
-	}
-	// Update access time for LRU
-	e.accessed = time.Now()
-	searchCache[query] = e
-	return e.result, true
-}
-
-func setCachedSearch(query, result string) {
-	searchMu.Lock()
-	defer searchMu.Unlock()
-
-	now := time.Now()
-	entry := searchEntry{
-		result:   result,
-		ts:       now,
-		accessed: now,
-	}
-
-	// Clean expired entries first
-	cleanExpiredSearchCache()
-
-	// If cache is at capacity, remove LRU entry
-	if len(searchCache) >= searchCacheSize {
-		removeLRUSearchEntry()
-	}
-
-	searchCache[query] = entry
-}
-
-// cleanExpiredSearchCache removes expired entries from cache
-func cleanExpiredSearchCache() {
-	now := time.Now()
-	for query, entry := range searchCache {
-		if now.Sub(entry.ts) > searchCacheTTL {
-			delete(searchCache, query)
-		}
-	}
-}
-
-// removeLRUSearchEntry removes the least recently used entry
-func removeLRUSearchEntry() {
-	if len(searchCache) == 0 {
-		return
-	}
-
-	var oldestQuery string
-	var oldestTime time.Time = time.Now()
-
-	for query, entry := range searchCache {
-		if entry.accessed.Before(oldestTime) {
-			oldestTime = entry.accessed
-			oldestQuery = query
-		}
-	}
-
-	if oldestQuery != "" {
-		delete(searchCache, oldestQuery)
-	}
 }
 
 func supportsWebSearch(model string) bool {
@@ -143,21 +53,10 @@ func supportsWebSearch(model string) bool {
 	return false
 }
 
-// defaultWebSearch performs a search using the OpenAI search API and returns the
-// plain text result.
+// defaultWebSearch performs a search using the configured search service
 func defaultWebSearch(ctx context.Context, query string) (string, error) {
-	logger.L.Debug("web search", "query", query)
-	q := normalizeQuery(query)
-	if res, ok := getCachedSearch(q); ok {
-		logger.L.Debug("web search cache hit", "query", q)
-		return res, nil
-	}
-	res, err := searchAPIFunc(ctx, q)
-	if err != nil {
-		return "", err
-	}
-	setCachedSearch(q, res)
-	return res, nil
+	searchService := getSearchService()
+	return searchService.Search(ctx, query)
 }
 
 // StreamChatCompletion sends messages to OpenAI using the streaming API and
