@@ -1,0 +1,69 @@
+name: Bug report
+about: Сообщить об ошибке в работе бота
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за репорт! Пожалуйста, заполните поля ниже, чтобы мы могли быстро воспроизвести проблему.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Краткое описание
+      placeholder: Например, /tasks возвращает пустой список
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Отправить команду ...
+        2. Подождать ...
+        3. Получить ошибку ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      placeholder: Что должно было произойти?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+      placeholder: Что произошло на самом деле?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи / stack trace
+      description: Не добавляйте секреты (токены, ключи API, личные данные).
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия / commit
+      placeholder: commit SHA или tag
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Среда
+      options:
+        - Local (docker-compose)
+        - VPS
+        - Railway
+        - Fly.io
+        - Другое
+    validations:
+      required: true
