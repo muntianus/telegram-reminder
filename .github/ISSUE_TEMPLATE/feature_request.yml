@@ -1,0 +1,47 @@
+name: Feature request
+about: Предложить новую возможность
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за идею! Опишите предложение максимально конкретно, чтобы его можно было оценить и запланировать.
+
+  - type: input
+    id: problem
+    attributes:
+      label: Какую проблему решает фича?
+      placeholder: Например, сложно получить дайджест по новой тематике
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предлагаемое решение
+      placeholder: Что именно нужно добавить или изменить?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      placeholder: Какие варианты вы рассматривали?
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Приоритет
+      options:
+        - Низкий
+        - Средний
+        - Высокий
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительный контекст
+      placeholder: Ссылки, скриншоты, примеры использования
